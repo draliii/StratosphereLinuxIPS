@@ -21,7 +21,7 @@ import platform
 import time
 
 
-class Module(Module, multiprocessing.Process):
+class Trust(Module, multiprocessing.Process):
     # Name: short name of the module. Do not use spaces
     name = 'p2ptrust'
     description = 'Enables sharing detection data with other Slips instances'
@@ -41,7 +41,7 @@ class Module(Module, multiprocessing.Process):
         # - new_ip
         # - tw_modified
         # - evidence_added
-        self.c1 = __database__.subscribe('new_ip')
+        self.c1 = __database__.subscribe('p2p_gopy')
         # Set the timeout based on the platform. This is because the pyredis lib does not have officially recognized the
         # timeout=None as it works in only macos and timeout=-1 as it only works in linux
         if platform.system() == 'Darwin':
@@ -75,13 +75,13 @@ class Module(Module, multiprocessing.Process):
             # Main loop function
             while True:
                 message = self.c1.get_message(timeout=self.timeout)
+
+                command = message['data'].split(" ", 1)[0]
+                print("Command is:", command)
+
                 # Check that the message is for you. Probably unnecessary...
                 if message['data'] == 'stop_process':
                     return True
-                if message['channel'] == 'new_ip':
-                    # Example of printing the number of profiles in the Database every second
-                    data = len(__database__.getProfiles())
-                    self.print('Amount of profiles: {}'.format(data))
 
         except KeyboardInterrupt:
             return True
