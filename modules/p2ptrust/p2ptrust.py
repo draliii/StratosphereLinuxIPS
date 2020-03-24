@@ -41,7 +41,12 @@ class Trust(Module, multiprocessing.Process):
         # - new_ip
         # - tw_modified
         # - evidence_added
-        self.c1 = __database__.subscribe('p2p_gopy')
+
+        self.c1 = pubsub = __database__.r.pubsub()
+        pubsub.subscribe('p2p_gopy')
+        # when the channels are oficially added (needs discussing with other slips developers),
+        # self.c1 = __database__.subscribe('p2p_gopy')
+
         # Set the timeout based on the platform. This is because the pyredis lib does not have officially recognized the
         # timeout=None as it works in only macos and timeout=-1 as it only works in linux
         if platform.system() == 'Darwin':
@@ -53,6 +58,8 @@ class Trust(Module, multiprocessing.Process):
         else:
             #??
             self.timeout = None
+
+        # TODO: start go process
 
     def print(self, text, verbose=1, debug=0):
         """ 
@@ -74,14 +81,47 @@ class Trust(Module, multiprocessing.Process):
         try:
             # Main loop function
             while True:
-                message = self.c1.get_message(timeout=self.timeout)
+                message = self.c1.get_message(timeout=None)
+                # skip control messages, such as subscribe notifications
+                if message['type'] != "message":
+                    continue
 
-                command = message['data'].split(" ", 1)[0]
-                print("Command is:", command)
+                data = message['data']
 
-                # Check that the message is for you. Probably unnecessary...
-                if message['data'] == 'stop_process':
+                # listen to slips kill signal and quit
+                if data == 'stop_process':
+                    print("Received stop signal from slips, stopping")
+                    # TODO: kill go process as well
                     return True
+
+                # separate control instruction and its parameters
+                try:
+                    command, parameters = data.split(" ", 1)
+                    command = command.lower()
+                    print("Command is:", command)
+
+                # ignore the instruction, if no parameters were provided
+                except ValueError:
+                    print("Invalid command: ", data)
+                    continue
+
+                if command == "reply":
+                    self.handle_go_reply(parameters)
+                    continue
+
+                if command == "update":
+                    self.handle_update(parameters)
+                    continue
+
+                if command == "slips_ask":
+                    self.handle_slips_ask(parameters)
+                    continue
+
+                if command == "go_ask":
+                    self.handle_go_ask(parameters)
+                    continue
+
+                print("Invalid command: ", data)
 
         except KeyboardInterrupt:
             return True
@@ -91,3 +131,52 @@ class Trust(Module, multiprocessing.Process):
             self.print(str(inst.args), 0, 1)
             self.print(str(inst), 0, 1)
             return True
+
+    def publish(self, message):
+        print("[publish]", message)
+        __database__.publish("p2p_pygo", message)
+
+    def handle_update(self, parameters: str):
+        """
+        Handle IP scores changing in Slips. Check if new score differs from opinion known to the network, and if so, it
+        means that it is worth sharing and it will be shared. Additionally, if the score is serious, the node will be
+        blamed
+        :param parameters:
+        :return:
+        """
+
+        # validate inputs
+        try:
+            ip, score, confidence = parameters.split(" ", 2)
+            score = float(score)
+            confidence = float(confidence)
+        except ValueError as e:
+            print("Parsing parameters failed, expected str, float, float:", parameters)
+            return
+        except TypeError as e:
+            print("Parsing parameters failed, expected 3 values (ip, score, confidence):", parameters)
+            return
+
+        # if value is significant (different from cached, or completely new)
+        # TODO: implement a cache
+
+        # TODO: discuss - only share score if confidence is high enough?
+
+        # if value is significant for a blame
+        if score > 0.8 and confidence > 0.6:
+            # TODO: justify the numbers
+            # TODO: also, the score will not be reported, if it was already blamed before - is this what we want?
+            self.publish("BLAME %s" % ip)
+        else:
+            self.publish("BROADCAST %s %f %f" % (ip, score, confidence))
+        pass
+
+    def handle_slips_ask(self, parameters):
+        pass
+
+    def handle_go_ask(self, parameters):
+        pass
+
+    def handle_go_reply(self, parameters):
+
+        pass

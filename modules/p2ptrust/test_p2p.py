@@ -38,35 +38,27 @@ def slips_listener_test():
     outputProcessThread.start()
 
     __database__.setOutputQueue(outputProcessQueue)
+    module_process = Trust(outputProcessQueue, config)
 
-    ModuleProcess = Trust(outputProcessQueue, config)
-    ModuleProcess.start()
-
-    print("check SEZNAM (should be cached successfully)")
-    __database__.publish("new_ip", "77.75.75.172")
+    module_process.start()
 
     time.sleep(1)
-    print("[#######] Please disable the network, test will resume in 10s")
-    time.sleep(10)
-    print("[#######] Resuming test")
 
-    print("check ALZA and CZNIC (they should be queued)")
-    __database__.publish("new_ip", "185.181.176.19")  # alza
-    __database__.publish("new_ip", "217.31.205.50")  # cznic
+    # invalid command
+    __database__.publish("p2p_gopy", "foooooooooo")
 
-    time.sleep(1)
-    print("check another SEZNAM IP (should be read from cache)")
-    __database__.publish("new_ip", "77.75.75.173")
+    # invalid command with parameters
+    __database__.publish("p2p_gopy", "foooooooooo bar 3")
 
-    time.sleep(1)
-    print("[#######] Please enable the network, test will resume in 10s")
-    time.sleep(10)
-    print("[#######] Resuming test")
+    # valid command, no parameters
+    __database__.publish("p2p_gopy", "UPDATE")
+    __database__.publish("p2p_gopy", "UPDATE ipaddress 1 1")
+    __database__.publish("p2p_gopy", "UPDATE ipaddress 1 five")
+    __database__.publish("p2p_gopy", "UPDATE ipaddress 1.999999999999999 3")
+    __database__.publish("p2p_gopy", "UPDATE ipaddress 3")
 
-    print("check ip from the same network as B (this will run and be cached, and trigger retrying. While retrying is in"
-          " progress, it should check ip B and return cached result and then run a new query for C)")
-    __database__.publish("new_ip", "185.181.176.20")  # alza
-
+    # stop instruction
+    __database__.publish("p2p_gopy", "stop_process")
 
 if __name__ == "__main__":
     t = time.time()
