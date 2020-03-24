@@ -12,6 +12,17 @@ def get_default_config():
     return cfg
 
 
+def make_data():
+    data = [{"peer": "10.0.0.4", "credibility": 0.5, "data": '{"remote_ip": "8.8.8.8", "score":0.0, "confidence":0.9}'},
+            {"peer": "10.0.0.9", "credibility": 0.9, "data": '{"remote_ip": "8.8.8.8", "score":0.1, "confidence":0.8}'}]
+
+    # the data is a list of reports from multiple peers. Each report contains information about the remote peer (his IP
+    # and his credibility), and the data the peer sent. From slips, we know that the data sent contains the IP address
+    # the peer is reporting (attacker), the score the peer assigned to that ip (how malicious does he find him) and the
+    # confidence he has in his score evaluation.
+    pass
+
+
 def slips_listener_test():
     """
     A function to test if the retry queue is working as intended. Needs human interaction (disable network when asked)
@@ -61,6 +72,9 @@ def slips_listener_test():
     # update with unparsable parameters
     __database__.publish("p2p_gopy", "UPDATE ipaddress 1 five")
     __database__.publish("p2p_gopy", "UPDATE ipaddress 3")
+
+    data = make_data()
+    __database__.publish("p2p_gopy", "GO_DATA %s" % data)
 
     # stop instruction
     __database__.publish("p2p_gopy", "stop_process")
