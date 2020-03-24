@@ -1,12 +1,24 @@
+# Ths is a template module for you to copy and create your own slips module
+# Instructions
+# 1. Create a new folder on ./modules with the name of your template. Example:
+#    mkdir modules/anomaly_detector
+# 2. Copy this template file in that folder. 
+#    cp modules/template/template.py modules/anomaly_detector/anomaly_detector.py
+# 3. Make it a module
+#    touch modules/template/__init__.py
+# 4. Change the name of the module, description and author in the variables
+# 5. The file name of the python module (template.py) MUST be the same as the name of the folder (template)
+# 6. The variable 'name' MUST have the public name of this module. This is used to ignore the module
+# 7. The name of the class MUST be 'Module', do not change it.
+
 # Must imports
+from slips.common.abstracts import Module
 import multiprocessing
+from slips.core.database import __database__
 import platform
 
 # Your imports
-from modules.p2ptrust.trustdb import TrustDB
-from modules.p2ptrust.go_listener import GoListener
-from slips.common.abstracts import Module
-from slips.core.database import __database__
+import time
 
 
 class Trust(Module, multiprocessing.Process):
@@ -24,14 +36,14 @@ class Trust(Module, multiprocessing.Process):
         self.config = config
         # Start the DB
         __database__.start(self.config)
-        # To which channels do you want to subscribe? When a message arrives on the channel the module will wakeup
+        # To which channels do you wnat to subscribe? When a message arrives on the channel the module will wakeup
         # The options change, so the last list is on the slips/core/database.py file. However common options are:
         # - new_ip
         # - tw_modified
         # - evidence_added
 
         self.c1 = pubsub = __database__.r.pubsub()
-        pubsub.subscribe('ip_info_changed')
+        pubsub.subscribe('p2p_gopy')
         # when the channels are oficially added (needs discussing with other slips developers),
         # self.c1 = __database__.subscribe('p2p_gopy')
 
@@ -44,17 +56,13 @@ class Trust(Module, multiprocessing.Process):
             # linux
             self.timeout = -1
         else:
-            # ??
+            #??
             self.timeout = None
 
-        self.sqlite_db = TrustDB(r"trustdb.db")
-
-        self.go_listener_process = GoListener(self.sqlite_db, __database__, self.config)
-        self.go_listener_process.start()
         # TODO: start go process
 
     def print(self, text, verbose=1, debug=0):
-        """
+        """ 
         Function to use to print text using the outputqueue of slips.
         Slips then decides how, when and where to print this text by taking all the processes into account
 
@@ -62,7 +70,7 @@ class Trust(Module, multiprocessing.Process):
          verbose: is the minimum verbosity level required for this text to be printed
          debug: is the minimum debugging level required for this text to be printed
          text: text to print. Can include format like 'Test {}'.format('here')
-
+        
         If not specified, the minimum verbosity level required is 1, and the minimum debugging level is 0
         """
 
@@ -79,37 +87,41 @@ class Trust(Module, multiprocessing.Process):
                     continue
 
                 data = message['data']
-                print(data)
 
                 # listen to slips kill signal and quit
                 if data == 'stop_process':
                     print("Received stop signal from slips, stopping")
-                    self.sqlite_db.__del__()
                     # TODO: kill go process as well
-                    self.go_listener_process.kill()
                     return True
 
-                # read what IP info changed
-                # poll new info from redis
-                # call proper function in rep model to update IP info
+                # separate control instruction and its parameters
+                try:
+                    command, parameters = data.split(" ", 1)
+                    command = command.lower()
+                    print("Command is:", command)
 
-        except KeyboardInterrupt:
-            return True
-        except Exception as inst:
-            self.print('Problem on the run()', 0, 1)
-            self.print(str(type(inst)), 0, 1)
-            self.print(str(inst.args), 0, 1)
-            self.print(str(inst), 0, 1)
-            return True
-
-    def run_old(self):
-        try:
-            # Main loop function
-            while True:
-                message = self.c1.get_message(timeout=None)
-                # skip control messages, such as subscribe notifications
-                if message['type'] != "message":
+                # ignore the instruction, if no parameters were provided
+                except ValueError:
+                    print("Invalid command: ", data)
                     continue
+
+                if command == "reply":
+                    self.handle_go_reply(parameters)
+                    continue
+
+                if command == "update":
+                    self.handle_update(parameters)
+                    continue
+
+                if command == "slips_ask":
+                    self.handle_slips_ask(parameters)
+                    continue
+
+                if command == "go_ask":
+                    self.handle_go_ask(parameters)
+                    continue
+
+                print("Invalid command: ", data)
 
         except KeyboardInterrupt:
             return True
@@ -157,29 +169,14 @@ class Trust(Module, multiprocessing.Process):
             self.publish("BLAME %s" % ip)
         else:
             self.publish("BROADCAST %s %f %f" % (ip, score, confidence))
-
-        # TODO: it might also be worth here to share the data with the library, right...
-
-    def handle_slips_ask(self, ip):
-        # is in cache?
-        # return from cache
-
-        # otherwise
-
-        # TODO: this is not verified to be an IP address, check that go does that
-        self.publish("ASK %s" % ip)
-
-        # go will send a reply in no longer than 10s (or whatever the timeout there is set to). The reply will be
-        # processed by this module and database will be updated accordingly
-
-    def handle_go_ask(self, parameters):
-        # TODO: return value from redis directly
         pass
 
-    def handle_go_data(self, parameters):
-        # TODO: parse the json
-        # process all peer responses
-        # find outliers and adjust peer scores?
-        # update data for ip in the cache
-        # this is the place where some trust decisions can again be made
+    def handle_slips_ask(self, parameters):
+        pass
+
+    def handle_go_ask(self, parameters):
+        pass
+
+    def handle_go_reply(self, parameters):
+
         pass
