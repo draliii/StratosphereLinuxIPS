@@ -105,20 +105,21 @@ class Trust(Module, multiprocessing.Process):
                     print("Invalid command: ", data)
                     continue
 
-                if command == "reply":
-                    self.handle_go_reply(parameters)
-                    continue
-
                 if command == "update":
                     self.handle_update(parameters)
                     continue
 
                 if command == "slips_ask":
-                    self.handle_slips_ask(parameters)
+                    ask_process = multiprocessing.Process(target=self.handle_slips_ask, args=(parameters,))
+                    ask_process.start()
                     continue
 
                 if command == "go_ask":
                     self.handle_go_ask(parameters)
+                    continue
+
+                if command == "reply":
+                    self.handle_go_new_message(parameters)
                     continue
 
                 print("Invalid command: ", data)
@@ -169,14 +170,23 @@ class Trust(Module, multiprocessing.Process):
             self.publish("BLAME %s" % ip)
         else:
             self.publish("BROADCAST %s %f %f" % (ip, score, confidence))
-        pass
 
-    def handle_slips_ask(self, parameters):
-        pass
+    def handle_slips_ask(self, ip):
+        # is in cache?
+        # return from cache
+
+        # otherwise
+
+        # TODO: this is not verified to be an IP address, check that go does that
+        self.publish("ASK %s" % ip)
+
+        # go will send a reply in no longer than 10s (or whatever the timeout there is set to). The reply will be
+        # processed by this module and database will be updated accordingly
 
     def handle_go_ask(self, parameters):
+        #  TODO: return value from redis directly
         pass
 
-    def handle_go_reply(self, parameters):
+    def handle_go_new_message(self, parameters):
 
         pass

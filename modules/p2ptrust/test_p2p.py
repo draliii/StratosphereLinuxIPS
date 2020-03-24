@@ -46,19 +46,25 @@ def slips_listener_test():
 
     # invalid command
     __database__.publish("p2p_gopy", "foooooooooo")
+    __database__.publish("p2p_gopy", "")
 
     # invalid command with parameters
     __database__.publish("p2p_gopy", "foooooooooo bar 3")
 
     # valid command, no parameters
     __database__.publish("p2p_gopy", "UPDATE")
+
+    # valid update
     __database__.publish("p2p_gopy", "UPDATE ipaddress 1 1")
-    __database__.publish("p2p_gopy", "UPDATE ipaddress 1 five")
     __database__.publish("p2p_gopy", "UPDATE ipaddress 1.999999999999999 3")
+
+    # update with unparsable parameters
+    __database__.publish("p2p_gopy", "UPDATE ipaddress 1 five")
     __database__.publish("p2p_gopy", "UPDATE ipaddress 3")
 
     # stop instruction
     __database__.publish("p2p_gopy", "stop_process")
+
 
 if __name__ == "__main__":
     t = time.time()
