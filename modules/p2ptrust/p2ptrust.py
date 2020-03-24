@@ -118,8 +118,8 @@ class Trust(Module, multiprocessing.Process):
                     self.handle_go_ask(parameters)
                     continue
 
-                if command == "reply":
-                    self.handle_go_new_message(parameters)
+                if command == "go_data":
+                    self.handle_go_data(parameters)
                     continue
 
                 print("Invalid command: ", data)
@@ -184,9 +184,13 @@ class Trust(Module, multiprocessing.Process):
         # processed by this module and database will be updated accordingly
 
     def handle_go_ask(self, parameters):
-        #  TODO: return value from redis directly
+        # TODO: return value from redis directly
         pass
 
-    def handle_go_new_message(self, parameters):
-
+    def handle_go_data(self, parameters):
+        # TODO: parse the json
+        # process all peer responses
+        # find outliers and adjust peer scores?
+        # update data for ip in the cache
+        # this is the place where some trust decisions can again be made
         pass
