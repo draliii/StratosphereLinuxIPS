@@ -171,6 +171,8 @@ class Trust(Module, multiprocessing.Process):
         else:
             self.publish("BROADCAST %s %f %f" % (ip, score, confidence))
 
+        # TODO: it might also be worth here to share the data with the library, right...
+
     def handle_slips_ask(self, ip):
         # is in cache?
         # return from cache
