@@ -38,8 +38,8 @@ class TrustDB:
 
         self.conn.execute("CREATE TABLE IF NOT EXISTS reports ("
                           "id INTEGER PRIMARY KEY NOT NULL, "
-                          "ipaddress TEXT NOT NULL, "
-                          "peerid TEXT NOT NULL, "
+                          "ipaddress TEXT NOT NULL, "  # report subject ip
+                          "peerid TEXT NOT NULL, "  # reporter peer id
                           "score REAL NOT NULL, "
                           "confidence REAL NOT NULL, "
                           "update_time DATE NOT NULL);")
@@ -55,6 +55,25 @@ class TrustDB:
         parameters = (ip, score, confidence, timestamp)
         self.conn.execute("INSERT INTO slips_reputation (ipaddress, score, confidence, update_time) "
                           "VALUES (?, ?, ?, ?);", parameters)
+
+    def insert_go_score(self, ip: str, uptime: float, ping: float):
+        timestamp = datetime.datetime.now()
+        parameters = (ip, uptime, ping, timestamp)
+        self.conn.execute("INSERT INTO go_reputation (peerid, uptime, ping, update_time) "
+                          "VALUES (?, ?, ?, ?);", parameters)
+
+    def insert_new_go_data(self, reports):
+        # TODO: validate reports, add timestamps
+        self.conn.executemany("INSERT INTO reports (ipaddress, peerid, score, confidence, update_time) VALUES (?, ?, ?, ?, ?)", reports)
+        pass
+
+    def get_opinion_on_ip(self, ip_address):
+        # select most recent reports from peers, and join those with most recent (or close to the report?) values on that peer from the go and slips reputation storages
+        pass
+
+    def get_opinion_on_peer(self, peerid):
+        pass
+
 
 
 if __name__ == '__main__':
