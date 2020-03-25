@@ -6,9 +6,10 @@ class TrustDB:
     def __init__(self, db_file):
         """ create a database connection to a SQLite database """
         self.conn = sqlite3.connect(db_file)
-        self.delete_tables()
+        # self.delete_tables()
         self.create_tables()
-        self.insert_slips_score("8.8.8.8", 0.0, 0.9)
+        # self.insert_slips_score("8.8.8.8", 0.0, 0.9)
+        self.get_opinion_on_ip("xxx")
         foo = self.conn.execute("SELECT * FROM slips_reputation")
         print(sqlite3.version)
 
@@ -68,7 +69,49 @@ class TrustDB:
         pass
 
     def get_opinion_on_ip(self, ip_address):
-        # select most recent reports from peers, and join those with most recent (or close to the report?) values on that peer from the go and slips reputation storages
+        # select most recent reports from peers, and join those with most recent values on that peer from the go and
+        # slips reputation storages
+
+        # TODO: maybe use the closest values instead of the most recent ones? What about multiple ips for one peerid?
+
+        # this query is saved separately in the get_evidence_on_ip.sql file
+        cur = self.conn.execute("SELECT reports.peerid AS peerid, "
+                                "       MAX(reports.update_time) AS report_updated, "
+                                "       reports.score AS report_score, "
+                                "       reports.confidence AS report_confidence, "
+                                "       reports.ipaddress AS reported_ip, "
+                                "       pi.reporter_ip AS reporter_ip, "
+                                "       pi.go_updated AS go_updated, "
+                                "       pi.slips_score AS reporter_slips_score, "
+                                "       pi.slips_confidence AS reporter_slips_confidence, "
+                                "       pi.slips_updated AS reporter_slips_updated "
+                                "FROM reports "
+                                "    LEFT JOIN ( "
+                                "        SELECT peer_ips.peerid, "
+                                "               MAX(peer_ips.update_time) AS go_updated, "
+                                "               peer_ips.ipaddress AS reporter_ip, "
+                                "               sr.slips_updated AS slips_updated, "
+                                "               sr.slips_score AS slips_score, "
+                                "               sr.slips_confidence AS slips_confidence "
+                                "        FROM peer_ips "
+                                "            LEFT JOIN ( "
+                                "                SELECT slips_reputation.ipaddress, "
+                                "                       MAX(slips_reputation.update_time) AS slips_updated, "
+                                "                       slips_reputation.score AS slips_score, "
+                                "                       slips_reputation.confidence AS slips_confidence "
+                                "                FROM slips_reputation "
+                                "                GROUP BY slips_reputation.ipaddress "
+                                "            ) sr "
+                                "            ON peer_ips.ipaddress=sr.ipaddress "
+                                "        GROUP BY peer_ips.peerid "
+                                "    ) pi "
+                                "    ON reports.peerid=pi.peerid "
+                                "WHERE reports.ipaddress = ? GROUP BY reports.peerid; ",
+                                (ip_address,))
+
+        column_names = [desc_part[0] for desc_part in cur.description]
+        print(column_names)
+        print(cur.fetchall())
         pass
 
     def get_opinion_on_peer(self, peerid):
