@@ -24,11 +24,10 @@ class TrustDB:
                           "confidence REAL NOT NULL, "
                           "update_time DATE NOT NULL);")
 
-        self.conn.execute("CREATE TABLE IF NOT EXISTS go_reputation ("
+        self.conn.execute("CREATE TABLE IF NOT EXISTS go_trust ("
                           "id INTEGER PRIMARY KEY NOT NULL, "
                           "peerid TEXT NOT NULL, "
-                          "uptime REAL NOT NULL, "
-                          "ping REAL NOT NULL, "
+                          "trust REAL NOT NULL, "
                           "update_time DATE NOT NULL);")
 
         self.conn.execute("CREATE TABLE IF NOT EXISTS peer_ips ("
@@ -57,11 +56,11 @@ class TrustDB:
         self.conn.execute("INSERT INTO slips_reputation (ipaddress, score, confidence, update_time) "
                           "VALUES (?, ?, ?, ?);", parameters)
 
-    def insert_go_score(self, ip: str, uptime: float, ping: float):
+    def insert_go_score(self, ip: str, trust: float):
         timestamp = datetime.datetime.now()
-        parameters = (ip, uptime, ping, timestamp)
-        self.conn.execute("INSERT INTO go_reputation (peerid, uptime, ping, update_time) "
-                          "VALUES (?, ?, ?, ?);", parameters)
+        parameters = (ip, trust, timestamp)
+        self.conn.execute("INSERT INTO go_trust (peerid, trust, update_time) "
+                          "VALUES (?, ?, ?);", parameters)
 
     def insert_new_go_data(self, reports):
         # TODO: validate reports, add timestamps
@@ -118,7 +117,5 @@ class TrustDB:
         pass
 
 
-
 if __name__ == '__main__':
     trustDB = TrustDB(r"trustdb.db")
-
