@@ -38,8 +38,9 @@ class TrustDB:
 
         self.conn.execute("CREATE TABLE IF NOT EXISTS reports ("
                           "id INTEGER PRIMARY KEY NOT NULL, "
-                          "ipaddress TEXT NOT NULL, "  # report subject ip
-                          "peerid TEXT NOT NULL, "  # reporter peer id
+                          "reporter_peerid TEXT NOT NULL, "
+                          "key_type TEXT NOT NULL, "
+                          "reported_key TEXT NOT NULL, "
                           "score REAL NOT NULL, "
                           "confidence REAL NOT NULL, "
                           "update_time DATE NOT NULL);")
@@ -64,7 +65,7 @@ class TrustDB:
 
     def insert_new_go_data(self, reports):
         # TODO: validate reports, add timestamps
-        self.conn.executemany("INSERT INTO reports (ipaddress, peerid, score, confidence, update_time) VALUES (?, ?, ?, ?, ?)", reports)
+        self.conn.executemany("INSERT INTO reports (reported_key, peerid, score, confidence, update_time) VALUES (?, ?, ?, ?, ?)", reports)
         pass
 
     def get_opinion_on_ip(self, ip_address):
@@ -74,11 +75,11 @@ class TrustDB:
         # TODO: maybe use the closest values instead of the most recent ones? What about multiple ips for one peerid?
 
         # this query is saved separately in the get_evidence_on_ip.sql file
-        cur = self.conn.execute("SELECT reports.peerid AS peerid, "
+        cur = self.conn.execute("SELECT reports.reporter_peerid AS peerid, "
                                 "       MAX(reports.update_time) AS report_updated, "
                                 "       reports.score AS report_score, "
                                 "       reports.confidence AS report_confidence, "
-                                "       reports.ipaddress AS reported_ip, "
+                                "       reports.reported_key AS reported_ip, "
                                 "       pi.reporter_ip AS reporter_ip, "
                                 "       pi.go_updated AS go_updated, "
                                 "       pi.slips_score AS reporter_slips_score, "
@@ -104,8 +105,9 @@ class TrustDB:
                                 "            ON peer_ips.ipaddress=sr.ipaddress "
                                 "        GROUP BY peer_ips.peerid "
                                 "    ) pi "
-                                "    ON reports.peerid=pi.peerid "
-                                "WHERE reports.ipaddress = ? GROUP BY reports.peerid; ",
+                                "    ON reports.reporter_peerid=pi.peerid "
+                                "WHERE reports.reported_key = ? AND reports.key_type = 'ip' "
+                                "GROUP BY reports.reporter_peerid; ",
                                 (ip_address,))
 
         column_names = [desc_part[0] for desc_part in cur.description]

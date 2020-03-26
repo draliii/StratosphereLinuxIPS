@@ -1,8 +1,8 @@
-SELECT reports.peerid AS peerid,
+SELECT reports.reporter_peerid AS peerid,
        MAX(reports.update_time) AS report_updated,
        reports.score AS report_score,
        reports.confidence AS report_confidence,
-       reports.ipaddress AS reported_ip,
+       reports.reported_key AS reported_ip,
        pi.reporter_ip AS reporter_ip,
        pi.go_updated AS go_updated,
        pi.slips_score AS reporter_slips_score,
@@ -28,5 +28,5 @@ FROM reports
             ON peer_ips.ipaddress=sr.ipaddress
         GROUP BY peer_ips.peerid
     ) pi
-    ON reports.peerid=pi.peerid
-WHERE reports.ipaddress = 'xxx' GROUP BY reports.peerid;
+    ON reports.reporter_peerid=pi.peerid
+WHERE reports.reported_key = 'xxx' AND reports.key_type = 'ip' GROUP BY reports.reporter_peerid;
