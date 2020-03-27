@@ -31,80 +31,26 @@ FROM reports
     ON reports.reporter_peerid=pi.peerid
 WHERE reports.reported_key = 'xxx' AND reports.key_type = 'ip' GROUP BY reports.reporter_peerid;
 
--- I have the timestamp, IP and peerID. I want to find all intervals, where this IP belongs to the peerID
-SELECT b.update_time AS lower_bound,
-       COALESCE(MIN(lj.min_update_time), strftime('%s','now')) AS upper_bound,
-       b.ipaddress AS ipaddress,
-       b.peerid AS peerid
-FROM peer_ips b
-    LEFT JOIN(
-        SELECT a.update_time AS min_update_time
-        FROM peer_ips a
-        WHERE a.peerid = ? OR a.ipaddress = ?
-        ORDER BY min_update_time
-        ) lj
-        ON lj.min_update_time > b.update_time
-WHERE b.peerid = ? AND b.ipaddress = ?
-GROUP BY lower_bound
-ORDER BY lower_bound DESC
-;
 
--- an attempt to modify the previous query to also check slips reputation and get the newest one
-SELECT b.update_time AS lower_bound,
-       COALESCE(MIN(lj.min_update_time), strftime('%s','now')) AS upper_bound,
-       b.ipaddress AS ipaddress,
-       b.peerid AS peerid,
-       sr.score,
-       sr.confidence,
-       sr.slips_update_time AS slips_update_time
-FROM peer_ips b
-    LEFT JOIN(
-        SELECT a.update_time AS min_update_time
-        FROM peer_ips a
-        WHERE a.peerid = ? OR a.ipaddress = ?
-        ORDER BY min_update_time
-        ) lj
-        ON lj.min_update_time > b.update_time
-    LEFT JOIN (
-        SELECT s.confidence AS confidence,
-               s.score AS score,
-               s.update_time AS slips_update_time,
-               s.ipaddress AS slips_ip_address
-        FROM slips_reputation s
-    ) sr on b.ipaddress = sr.slips_ip_address
-WHERE b.peerid = ? AND b.ipaddress = ? AND sr.slips_update_time >= lower_bound
-GROUP BY lower_bound
--- HAVING slips_update_time < upper_bound
--- ORDER BY slips_update_time
-;
+SELECT ipaddress FROM peer_ips WHERE peerid = 'aaa' AND;
 
--- this works:
-SELECT * FROM (
-    SELECT b.update_time AS lower_bound,
-           COALESCE(MIN(lj.min_update_time), strftime('%s','now')) AS upper_bound,
-           b.ipaddress AS ipaddress,
-           b.peerid AS peerid
-    FROM peer_ips b
-        LEFT JOIN(
-            SELECT a.update_time AS min_update_time
-            FROM peer_ips a
-            WHERE a.peerid = :peerid OR a.ipaddress = :ipaddress
-            ORDER BY min_update_time
-            ) lj
-            ON lj.min_update_time > b.update_time
-    WHERE b.peerid = :peerid AND b.ipaddress = :ipaddress
-    GROUP BY lower_bound
-    ORDER BY lower_bound DESC
-    ) x
-LEFT JOIN slips_reputation sr USING (ipaddress)
-WHERE sr.update_time < x.upper_bound AND sr.update_time >= x.lower_bound
-ORDER BY sr.update_time DESC
-LIMIT 1
-;
+SELECT MAX(update_time) AS lower_bound, ipaddress FROM peer_ips WHERE update_time < 4 AND peerid = 'ccc';
+
+-- this successfully gets the range in which the ip was assigned to the peer id
+SELECT MAX(update_time) AS lower_bound,
+       ub.upper_bound,
+       peer_ips.ipaddress AS ip,
+       peer_ips.peerid
+FROM peer_ips
+LEFT JOIN (
+    SELECT MIN(update_time) AS upper_bound,
+           ipaddress,
+           peerid
+    FROM peer_ips
+    WHERE peer_ips.update_time > 4
+    ) ub
+ON (ub.peerid  = peer_ips.peerid OR ub.ipaddress = peer_ips.ipaddress)
+
+WHERE peer_ips.update_time < 4 AND peer_ips.peerid = 'ccc';
 
 
--- insert opinion if there is none. If it exists, then update it
-REPLACE INTO opinion_cache
-    (key_type, reported_key, score, confidence, network_score, update_time)
-     VALUES
-            (?, ?, ?, ?, ?, strftime('%s','now'));
