@@ -65,7 +65,9 @@ class TrustDB:
 
     def insert_new_go_data(self, reports):
         # TODO: validate reports, add timestamps
-        self.conn.executemany("INSERT INTO reports (reported_key, peerid, score, confidence, update_time) VALUES (?, ?, ?, ?, ?)", reports)
+        self.conn.executemany("INSERT INTO reports "
+                              "(reporter_peerid, key_type, reported_key, score, confidence, update_time) "
+                              "VALUES (?, ?, ?, ?, ?, ?)", reports)
         pass
 
     def get_opinion_on_ip(self, ip_address):
