@@ -31,26 +31,20 @@ FROM reports
     ON reports.reporter_peerid=pi.peerid
 WHERE reports.reported_key = 'xxx' AND reports.key_type = 'ip' GROUP BY reports.reporter_peerid;
 
-
-SELECT ipaddress FROM peer_ips WHERE peerid = 'aaa' AND;
-
-SELECT MAX(update_time) AS lower_bound, ipaddress FROM peer_ips WHERE update_time < 4 AND peerid = 'ccc';
-
--- this successfully gets the range in which the ip was assigned to the peer id
-SELECT MAX(update_time) AS lower_bound,
-       ub.upper_bound,
-       peer_ips.ipaddress AS ip,
-       peer_ips.peerid
-FROM peer_ips
-LEFT JOIN (
-    SELECT MIN(update_time) AS upper_bound,
-           ipaddress,
-           peerid
-    FROM peer_ips
-    WHERE peer_ips.update_time > 4
-    ) ub
-ON (ub.peerid  = peer_ips.peerid OR ub.ipaddress = peer_ips.ipaddress)
-
-WHERE peer_ips.update_time < 4 AND peer_ips.peerid = 'ccc';
-
-
+-- I have the timestamp, IP and peerID. I want to find all intervals, where this IP belongs to the peerID
+SELECT b.update_time AS lower_bound,
+       COALESCE(MIN(lj.min_update_time), strftime('%s','now')) AS upper_bound,
+       b.ipaddress AS ipaddress,
+       b.peerid AS peerid
+FROM peer_ips b
+    LEFT JOIN(
+        SELECT a.update_time AS min_update_time
+        FROM peer_ips a
+        WHERE a.peerid = ? OR a.ipaddress = ?
+        ORDER BY min_update_time
+        ) lj
+        ON lj.min_update_time > b.update_time
+WHERE b.peerid = ? AND b.ipaddress = ?
+GROUP BY lower_bound
+ORDER BY lower_bound DESC
+;

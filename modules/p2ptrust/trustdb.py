@@ -9,7 +9,7 @@ class TrustDB:
         # self.delete_tables()
         self.create_tables()
         # self.insert_slips_score("8.8.8.8", 0.0, 0.9)
-        self.get_opinion_on_ip("xxx")
+        self.get_opinion_on_ip2("xxx")
         foo = self.conn.execute("SELECT * FROM slips_reputation")
         print(sqlite3.version)
 
@@ -22,19 +22,19 @@ class TrustDB:
                           "ipaddress TEXT NOT NULL, "
                           "score REAL NOT NULL, "
                           "confidence REAL NOT NULL, "
-                          "update_time DATE NOT NULL);")
+                          "update_time REAL NOT NULL);")
 
         self.conn.execute("CREATE TABLE IF NOT EXISTS go_trust ("
                           "id INTEGER PRIMARY KEY NOT NULL, "
                           "peerid TEXT NOT NULL, "
                           "trust REAL NOT NULL, "
-                          "update_time DATE NOT NULL);")
+                          "update_time REAL NOT NULL);")
 
         self.conn.execute("CREATE TABLE IF NOT EXISTS peer_ips ("
                           "id INTEGER PRIMARY KEY NOT NULL, "
                           "ipaddress TEXT NOT NULL, "
                           "peerid TEXT NOT NULL, "
-                          "update_time DATE NOT NULL);")
+                          "update_time REAL NOT NULL);")
 
         self.conn.execute("CREATE TABLE IF NOT EXISTS reports ("
                           "id INTEGER PRIMARY KEY NOT NULL, "
@@ -43,7 +43,7 @@ class TrustDB:
                           "reported_key TEXT NOT NULL, "
                           "score REAL NOT NULL, "
                           "confidence REAL NOT NULL, "
-                          "update_time DATE NOT NULL);")
+                          "update_time REAL NOT NULL);")
 
     def delete_tables(self):
         self.conn.execute("DROP TABLE IF EXISTS slips_reputation;")
@@ -116,6 +116,38 @@ class TrustDB:
         print(column_names)
         print(cur.fetchall())
         pass
+
+    def get_opinion_on_ip2(self, peerid):
+        reports_cur = self.conn.execute("SELECT reports.reporter_peerid AS reporter_peerid,"
+                                        "       MAX(reports.update_time) AS report_timestamp,"
+                                        "       reports.score AS report_score,"
+                                        "       reports.confidence AS report_confidence,"
+                                        "       reports.reported_key AS reported_ip "
+                                        "FROM reports "
+                                        "WHERE reports.reported_key = ?"
+                                        "       AND reports.key_type = 'ip' "
+                                        "GROUP BY reports.reporter_peerid;", (peerid,))
+
+        while True:
+            reporter_peerid, report_timestamp, report_score, report_confidence, reported_ip = reports_cur.fetchone()
+            ip_cur = self.conn.execute("SELECT MAX(update_time) AS ip_update_time, ipaddress "
+                                       "FROM peer_ips "
+                                       "WHERE update_time < ?;", (report_timestamp,))
+            ip_timestamp, peer_ip = ip_cur.fetchone()
+
+            lb_cur = self.conn.execute("")
+            
+            
+
+
+
+
+
+
+
+
+
+
 
     def get_opinion_on_peer(self, peerid):
         pass
