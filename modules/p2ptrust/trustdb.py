@@ -72,7 +72,7 @@ class TrustDB:
 
     def get_opinion_on_ip(self, ip_address):
         # select most recent reports from peers, and join those with most recent values on that peer from the go and
-        # slips reputation storages
+        # slips reputation storage
 
         # TODO: maybe use the closest values instead of the most recent ones? What about multiple ips for one peerid?
 
@@ -117,7 +117,7 @@ class TrustDB:
         print(cur.fetchall())
         pass
 
-    def get_opinion_on_ip2(self, peerid):
+    def get_opinion_on_ip2(self, ipaddress):
         reports_cur = self.conn.execute("SELECT reports.reporter_peerid AS reporter_peerid,"
                                         "       MAX(reports.update_time) AS report_timestamp,"
                                         "       reports.score AS report_score,"
@@ -126,28 +126,54 @@ class TrustDB:
                                         "FROM reports "
                                         "WHERE reports.reported_key = ?"
                                         "       AND reports.key_type = 'ip' "
-                                        "GROUP BY reports.reporter_peerid;", (peerid,))
+                                        "GROUP BY reports.reporter_peerid;", (ipaddress,))
 
-        while True:
-            reporter_peerid, report_timestamp, report_score, report_confidence, reported_ip = reports_cur.fetchone()
+        reporters_scores = []
+
+        # iterate over all peers that reported the ip
+        for reporter_peerid, report_timestamp, report_score, report_confidence, reported_ip in reports_cur.fetchall():
+
+            # get the ip address the reporting peer had when doing the report
             ip_cur = self.conn.execute("SELECT MAX(update_time) AS ip_update_time, ipaddress "
                                        "FROM peer_ips "
-                                       "WHERE update_time < ?;", (report_timestamp,))
-            ip_timestamp, peer_ip = ip_cur.fetchone()
+                                       "WHERE update_time <= ? AND peerid = ?;", (report_timestamp, reporter_peerid))
+            _, reporter_ipaddress = ip_cur.fetchone()
+            # TODO: handle empty response
 
-            lb_cur = self.conn.execute("")
-            
-            
-
-
-
-
-
-
-
-
-
-
+            # get the most recent score and confidence for the given IP-peerID pair
+            parameters_dict = {"peerid": reporter_peerid, "ipaddress": reporter_ipaddress}
+            slips_reputation_cur = self.conn.execute("SELECT * FROM (  "
+                                                     "    SELECT b.update_time AS lower_bound,  "
+                                                     "           COALESCE( "
+                                                     "              MIN(lj.min_update_time), strftime('%s','now')"
+                                                     "           ) AS upper_bound,  "
+                                                     "           b.ipaddress AS ipaddress,  "
+                                                     "           b.peerid AS peerid  "
+                                                     "    FROM peer_ips b  "
+                                                     "        LEFT JOIN(  "
+                                                     "            SELECT a.update_time AS min_update_time  "
+                                                     "            FROM peer_ips a  "
+                                                     "            WHERE a.peerid = :peerid OR a.ipaddress = :ipaddress "
+                                                     "            ORDER BY min_update_time  "
+                                                     "            ) lj  "
+                                                     "            ON lj.min_update_time > b.update_time  "
+                                                     "    WHERE b.peerid = :peerid AND b.ipaddress = :ipaddress  "
+                                                     "    GROUP BY lower_bound  "
+                                                     "    ORDER BY lower_bound DESC  "
+                                                     "    ) x  "
+                                                     "LEFT JOIN slips_reputation sr USING (ipaddress)  "
+                                                     "WHERE sr.update_time < x.upper_bound AND "
+                                                     "      sr.update_time >= x.lower_bound  "
+                                                     "ORDER BY sr.update_time DESC  "
+                                                     "LIMIT 1  "
+                                                     ";", parameters_dict)
+            data = slips_reputation_cur.fetchone()
+            if data is None:
+                print("No slips reputation data for ", parameters_dict)
+                continue
+            _, _, _, _, _, reporter_score, reporter_confidence, reputation_update_time = data
+            reporters_scores.append((report_score, report_confidence, reporter_score, reporter_confidence))
+        print(reporters_scores)
 
     def get_opinion_on_peer(self, peerid):
         pass
