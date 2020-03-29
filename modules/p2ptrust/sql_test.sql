@@ -48,3 +48,56 @@ WHERE b.peerid = ? AND b.ipaddress = ?
 GROUP BY lower_bound
 ORDER BY lower_bound DESC
 ;
+
+-- an attempt to modify the previous query to also check slips reputation and get the newest one
+SELECT b.update_time AS lower_bound,
+       COALESCE(MIN(lj.min_update_time), strftime('%s','now')) AS upper_bound,
+       b.ipaddress AS ipaddress,
+       b.peerid AS peerid,
+       sr.score,
+       sr.confidence,
+       sr.slips_update_time AS slips_update_time
+FROM peer_ips b
+    LEFT JOIN(
+        SELECT a.update_time AS min_update_time
+        FROM peer_ips a
+        WHERE a.peerid = ? OR a.ipaddress = ?
+        ORDER BY min_update_time
+        ) lj
+        ON lj.min_update_time > b.update_time
+    LEFT JOIN (
+        SELECT s.confidence AS confidence,
+               s.score AS score,
+               s.update_time AS slips_update_time,
+               s.ipaddress AS slips_ip_address
+        FROM slips_reputation s
+    ) sr on b.ipaddress = sr.slips_ip_address
+WHERE b.peerid = ? AND b.ipaddress = ? AND sr.slips_update_time >= lower_bound
+GROUP BY lower_bound
+-- HAVING slips_update_time < upper_bound
+-- ORDER BY slips_update_time
+;
+
+-- this works:
+SELECT * FROM (
+    SELECT b.update_time AS lower_bound,
+           COALESCE(MIN(lj.min_update_time), strftime('%s','now')) AS upper_bound,
+           b.ipaddress AS ipaddress,
+           b.peerid AS peerid
+    FROM peer_ips b
+        LEFT JOIN(
+            SELECT a.update_time AS min_update_time
+            FROM peer_ips a
+            WHERE a.peerid = :peerid OR a.ipaddress = :ipaddress
+            ORDER BY min_update_time
+            ) lj
+            ON lj.min_update_time > b.update_time
+    WHERE b.peerid = :peerid AND b.ipaddress = :ipaddress
+    GROUP BY lower_bound
+    ORDER BY lower_bound DESC
+    ) x
+LEFT JOIN slips_reputation sr USING (ipaddress)
+WHERE sr.update_time < x.upper_bound AND sr.update_time >= x.lower_bound
+ORDER BY sr.update_time DESC
+LIMIT 1
+;
