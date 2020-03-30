@@ -10,7 +10,6 @@ class TrustDB:
         self.create_tables()
         # self.insert_slips_score("8.8.8.8", 0.0, 0.9)
         self.get_opinion_on_ip2("xxx")
-        foo = self.conn.execute("SELECT * FROM slips_reputation")
         print(sqlite3.version)
 
     def __del__(self):
@@ -173,6 +172,8 @@ class TrustDB:
                 continue
             _, _, _, _, _, reporter_score, reporter_confidence, reputation_update_time = data
             reporters_scores.append((report_score, report_confidence, reporter_score, reporter_confidence))
+
+
         print(reporters_scores)
 
     def get_opinion_on_peer(self, peerid):
