@@ -101,3 +101,10 @@ WHERE sr.update_time < x.upper_bound AND sr.update_time >= x.lower_bound
 ORDER BY sr.update_time DESC
 LIMIT 1
 ;
+
+
+-- insert opinion if there is none. If it exists, then update it
+REPLACE INTO opinion_cache
+    (key_type, reported_key, score, confidence, network_score, update_time)
+     VALUES
+            (?, ?, ?, ?, ?, strftime('%s','now'));

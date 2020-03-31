@@ -1,17 +1,5 @@
-# Ths is a template module for you to copy and create your own slips module
-# Instructions
-# 1. Create a new folder on ./modules with the name of your template. Example:
-#    mkdir modules/anomaly_detector
-# 2. Copy this template file in that folder. 
-#    cp modules/template/template.py modules/anomaly_detector/anomaly_detector.py
-# 3. Make it a module
-#    touch modules/template/__init__.py
-# 4. Change the name of the module, description and author in the variables
-# 5. The file name of the python module (template.py) MUST be the same as the name of the folder (template)
-# 6. The variable 'name' MUST have the public name of this module. This is used to ignore the module
-# 7. The name of the class MUST be 'Module', do not change it.
-
 # Must imports
+from modules.p2ptrust.trustdb import TrustDB
 from slips.common.abstracts import Module
 import multiprocessing
 from slips.core.database import __database__
@@ -59,6 +47,10 @@ class Trust(Module, multiprocessing.Process):
             #??
             self.timeout = None
 
+        self.sqlite_db = TrustDB(r"trustdb.db")
+
+
+
         # TODO: start go process
 
     def print(self, text, verbose=1, debug=0):
@@ -92,6 +84,7 @@ class Trust(Module, multiprocessing.Process):
                 if data == 'stop_process':
                     print("Received stop signal from slips, stopping")
                     # TODO: kill go process as well
+                    self.sqlite_db.__del__()
                     return True
 
                 # separate control instruction and its parameters
