@@ -9,7 +9,7 @@ class TrustDB:
         # self.delete_tables()
         self.create_tables()
         # self.insert_slips_score("8.8.8.8", 0.0, 0.9)
-        self.get_opinion_on_ip2("xxx")
+        self.get_opinion_on_ip("zzz")
         print(sqlite3.version)
 
     def __del__(self):
@@ -44,6 +44,14 @@ class TrustDB:
                           "confidence REAL NOT NULL, "
                           "update_time REAL NOT NULL);")
 
+        self.conn.execute("CREATE TABLE IF NOT EXISTS opinion_cache ("
+                          "key_type TEXT NOT NULL, "
+                          "reported_key TEXT NOT NULL PRIMARY KEY, "
+                          "score REAL NOT NULL, "
+                          "confidence REAL NOT NULL, "
+                          "network_score REAL NOT NULL, "
+                          "update_time DATE NOT NULL);")
+
     def delete_tables(self):
         self.conn.execute("DROP TABLE IF EXISTS slips_reputation;")
         self.conn.execute("DROP TABLE IF EXISTS go_reputation;")
@@ -69,54 +77,13 @@ class TrustDB:
                               "VALUES (?, ?, ?, ?, ?, ?)", reports)
         pass
 
-    def get_opinion_on_ip(self, ip_address):
-        # select most recent reports from peers, and join those with most recent values on that peer from the go and
-        # slips reputation storage
+    def update_network_opinion(self, key_type, ipaddress, score, confidence, network_score):
+        self.conn.execute("REPLACE INTO"
+                          " opinion_cache (key_type, reported_key, score, confidence, network_score, update_time)"
+                          "VALUES (?, ?, ?, ?, ?, strftime('%s','now'));", (key_type, ipaddress, score, confidence, network_score))
 
-        # TODO: maybe use the closest values instead of the most recent ones? What about multiple ips for one peerid?
 
-        # this query is saved separately in the get_evidence_on_ip.sql file
-        cur = self.conn.execute("SELECT reports.reporter_peerid AS peerid, "
-                                "       MAX(reports.update_time) AS report_updated, "
-                                "       reports.score AS report_score, "
-                                "       reports.confidence AS report_confidence, "
-                                "       reports.reported_key AS reported_ip, "
-                                "       pi.reporter_ip AS reporter_ip, "
-                                "       pi.go_updated AS go_updated, "
-                                "       pi.slips_score AS reporter_slips_score, "
-                                "       pi.slips_confidence AS reporter_slips_confidence, "
-                                "       pi.slips_updated AS reporter_slips_updated "
-                                "FROM reports "
-                                "    LEFT JOIN ( "
-                                "        SELECT peer_ips.peerid, "
-                                "               MAX(peer_ips.update_time) AS go_updated, "
-                                "               peer_ips.ipaddress AS reporter_ip, "
-                                "               sr.slips_updated AS slips_updated, "
-                                "               sr.slips_score AS slips_score, "
-                                "               sr.slips_confidence AS slips_confidence "
-                                "        FROM peer_ips "
-                                "            LEFT JOIN ( "
-                                "                SELECT slips_reputation.ipaddress, "
-                                "                       MAX(slips_reputation.update_time) AS slips_updated, "
-                                "                       slips_reputation.score AS slips_score, "
-                                "                       slips_reputation.confidence AS slips_confidence "
-                                "                FROM slips_reputation "
-                                "                GROUP BY slips_reputation.ipaddress "
-                                "            ) sr "
-                                "            ON peer_ips.ipaddress=sr.ipaddress "
-                                "        GROUP BY peer_ips.peerid "
-                                "    ) pi "
-                                "    ON reports.reporter_peerid=pi.peerid "
-                                "WHERE reports.reported_key = ? AND reports.key_type = 'ip' "
-                                "GROUP BY reports.reporter_peerid; ",
-                                (ip_address,))
-
-        column_names = [desc_part[0] for desc_part in cur.description]
-        print(column_names)
-        print(cur.fetchall())
-        pass
-
-    def get_opinion_on_ip2(self, ipaddress):
+    def get_opinion_on_ip(self, ipaddress, update_cache=False):
         reports_cur = self.conn.execute("SELECT reports.reporter_peerid AS reporter_peerid,"
                                         "       MAX(reports.update_time) AS report_timestamp,"
                                         "       reports.score AS report_score,"
@@ -173,8 +140,7 @@ class TrustDB:
             _, _, _, _, _, reporter_score, reporter_confidence, reputation_update_time = data
             reporters_scores.append((report_score, report_confidence, reporter_score, reporter_confidence))
 
-
-        print(reporters_scores)
+        return reporters_scores
 
     def get_opinion_on_peer(self, peerid):
         pass

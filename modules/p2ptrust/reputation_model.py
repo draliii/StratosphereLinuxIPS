@@ -1,35 +1,52 @@
 from statistics import mean
 
-
-def compute_peer_reputation(trust, score, confidence):
-    return trust * score * confidence
+from modules.p2ptrust.trustdb import TrustDB
 
 
-def normalize_peer_reputations(peers):
-    rep_sum = sum(peers)
-    w = 1/rep_sum
+class ReputationModel:
+    # this should be made into an interface
+    def __init__(self, trustdb: TrustDB):
+        self.trustdb = trustdb
+        pass
 
-    rep_avg = mean(peers)
+    def get_opinion_on_ip(self, ipaddress, max_age):
+        # get report on that ip that is at most max_age old
+        # if no such report is found:
 
-    # now the reputations will sum to 1
-    weighted_reputations = [w*x for x in peers]
-    return rep_sum, rep_avg, weighted_reputations
+        reports_on_ip = self.trustdb.get_opinion_on_ip(ipaddress, update_cache=True)
+        network_score, combined_score, combined_confidence = self.assemble_peer_opinion(reports_on_ip)
+
+        self.trustdb.update_network_opinion("ip", ipaddress, combined_score, combined_confidence, network_score)
+
+    def compute_peer_reputation(self, trust, score, confidence):
+        return trust * score * confidence
 
 
-def assemble_peer_opinion(data):
-    reports = []
-    reporters = []
+    def normalize_peer_reputations(self, peers):
+        rep_sum = sum(peers)
+        w = 1/rep_sum
 
-    for peer_report in data:
-        report_score, report_confidence, reporter_trust, reporter_score, reporter_confidence = peer_report
-        reports.append((report_score, report_confidence))
-        reporters.append(compute_peer_reputation(reporter_trust, reporter_score, reporter_confidence))
+        rep_avg = mean(peers)
 
-    report_sum, report_avg, weighted_reporters = normalize_peer_reputations(reporters)
+        # now the reputations will sum to 1
+        weighted_reputations = [w*x for x in peers]
+        return rep_sum, rep_avg, weighted_reputations
 
-    combined_score = sum([r[0]*w for r, w, in zip(reports, weighted_reporters)])
-    combined_confidence = sum([r[1]*w for r, w, in zip(reports, weighted_reporters)])
 
-    network_score = report_avg
+    def assemble_peer_opinion(self, data):
+        reports = []
+        reporters = []
 
-    return network_score, combined_score, combined_confidence
+        for peer_report in data:
+            report_score, report_confidence, reporter_trust, reporter_score, reporter_confidence = peer_report
+            reports.append((report_score, report_confidence))
+            reporters.append(self.compute_peer_reputation(reporter_trust, reporter_score, reporter_confidence))
+
+        report_sum, report_avg, weighted_reporters = self.normalize_peer_reputations(reporters)
+
+        combined_score = sum([r[0]*w for r, w, in zip(reports, weighted_reporters)])
+        combined_confidence = sum([r[1]*w for r, w, in zip(reports, weighted_reporters)])
+
+        network_score = report_avg
+
+        return network_score, combined_score, combined_confidence
