@@ -1,13 +1,23 @@
+import multiprocessing
 from statistics import mean
 
 from modules.p2ptrust.trustdb import TrustDB
 
 
-class ReputationModel:
+class ReputationModel(multiprocessing.Process):
     # this should be made into an interface
-    def __init__(self, trustdb: TrustDB):
+    def __init__(self, trustdb: TrustDB, redis_database, config):
+        super().__init__()
         self.trustdb = trustdb
-        pass
+        self.rdb = redis_database
+        self.config = config
+        self.rdb_channel = self.rdb.r.pubsub()
+        self.rdb_channel.subscribe('p2p_gopy')
+
+    def run(self):
+        while True:
+            message = self.rdb_channel.get_message(timeout=None)
+            print("RM:", message)
 
     def get_opinion_on_ip(self, ipaddress, max_age):
         # get report on that ip that is at most max_age old
