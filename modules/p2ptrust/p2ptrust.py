@@ -1,4 +1,5 @@
 # Must imports
+from modules.p2ptrust.reputation_model import ReputationModel
 from modules.p2ptrust.trustdb import TrustDB
 from slips.common.abstracts import Module
 import multiprocessing
@@ -44,13 +45,13 @@ class Trust(Module, multiprocessing.Process):
             # linux
             self.timeout = -1
         else:
-            #??
+            # ??
             self.timeout = None
 
         self.sqlite_db = TrustDB(r"trustdb.db")
 
-
-
+        self.reputation_process = ReputationModel(self.sqlite_db, __database__, self.config)
+        self.reputation_process.start()
         # TODO: start go process
 
     def print(self, text, verbose=1, debug=0):
@@ -83,8 +84,9 @@ class Trust(Module, multiprocessing.Process):
                 # listen to slips kill signal and quit
                 if data == 'stop_process':
                     print("Received stop signal from slips, stopping")
-                    # TODO: kill go process as well
                     self.sqlite_db.__del__()
+                    # TODO: kill go process as well
+                    self.reputation_process.kill()
                     return True
 
                 # separate control instruction and its parameters
