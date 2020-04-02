@@ -32,7 +32,7 @@ class Trust(Module, multiprocessing.Process):
         # - evidence_added
 
         self.c1 = pubsub = __database__.r.pubsub()
-        pubsub.subscribe('p2p_gopy')
+        pubsub.subscribe('ip_info_changed')
         # when the channels are oficially added (needs discussing with other slips developers),
         # self.c1 = __database__.subscribe('p2p_gopy')
 
@@ -71,6 +71,30 @@ class Trust(Module, multiprocessing.Process):
         self.outputqueue.put(vd_text + '|' + self.name + '|[' + self.name + '] ' + str(text))
 
     def run(self):
+        try:
+            # Main loop function
+            while True:
+                message = self.c1.get_message(timeout=None)
+                # skip control messages, such as subscribe notifications
+                if message['type'] != "message":
+                    continue
+
+                data = message['data']
+                print(data)
+                # read what IP info changed
+                # poll new info from redis
+                # call proper function in rep model to update IP info
+
+        except KeyboardInterrupt:
+            return True
+        except Exception as inst:
+            self.print('Problem on the run()', 0, 1)
+            self.print(str(type(inst)), 0, 1)
+            self.print(str(inst.args), 0, 1)
+            self.print(str(inst), 0, 1)
+            return True
+
+    def run_old(self):
         try:
             # Main loop function
             while True:
