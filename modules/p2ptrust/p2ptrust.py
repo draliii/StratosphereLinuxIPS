@@ -81,6 +81,15 @@ class Trust(Module, multiprocessing.Process):
 
                 data = message['data']
                 print(data)
+
+                # listen to slips kill signal and quit
+                if data == 'stop_process':
+                    print("Received stop signal from slips, stopping")
+                    self.sqlite_db.__del__()
+                    # TODO: kill go process as well
+                    self.reputation_process.kill()
+                    return True
+
                 # read what IP info changed
                 # poll new info from redis
                 # call proper function in rep model to update IP info
@@ -102,46 +111,6 @@ class Trust(Module, multiprocessing.Process):
                 # skip control messages, such as subscribe notifications
                 if message['type'] != "message":
                     continue
-
-                data = message['data']
-
-                # listen to slips kill signal and quit
-                if data == 'stop_process':
-                    print("Received stop signal from slips, stopping")
-                    self.sqlite_db.__del__()
-                    # TODO: kill go process as well
-                    self.reputation_process.kill()
-                    return True
-
-                # separate control instruction and its parameters
-                try:
-                    command, parameters = data.split(" ", 1)
-                    command = command.lower()
-                    print("Command is:", command)
-
-                # ignore the instruction, if no parameters were provided
-                except ValueError:
-                    print("Invalid command: ", data)
-                    continue
-
-                if command == "update":
-                    self.handle_update(parameters)
-                    continue
-
-                if command == "slips_ask":
-                    ask_process = multiprocessing.Process(target=self.handle_slips_ask, args=(parameters,))
-                    ask_process.start()
-                    continue
-
-                if command == "go_ask":
-                    self.handle_go_ask(parameters)
-                    continue
-
-                if command == "go_data":
-                    self.handle_go_data(parameters)
-                    continue
-
-                print("Invalid command: ", data)
 
         except KeyboardInterrupt:
             return True
