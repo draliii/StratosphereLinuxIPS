@@ -1,3 +1,4 @@
+import json
 import multiprocessing
 from slips.core.database import Database as SlipsDatabase
 from statistics import mean
@@ -15,6 +16,8 @@ class ReputationModel(multiprocessing.Process):
         self.config = config
         self.rdb_channel = self.rdb.r.pubsub()
         self.rdb_channel.subscribe('p2p_gopy')
+
+        self.message_processors = {"v1": self.parse_v1}
 
     def run(self):
         while True:
@@ -68,10 +71,39 @@ class ReputationModel(multiprocessing.Process):
         self.send_message_to_go(ip_data)
 
     def handle_go_data(self, parameters):
-        # TODO: parse data from parameters
-        #       multiple messages may be aggreagated here, all reporting the same IP
-        ip, reporter_peerid, score, confidence = "2.3.4.5", "abiuarhogrqerghorggr", 0.1, 0.3
-        # TODO: save data to sqlite db
+        reports = []
+        try:
+            reports = json.loads(parameters)
+        except:
+            # TODO: specify json error
+            print("Go send invalid json")
+            return
+
+        for report in reports:
+            # report is the dictionary containing reporter, version, report_time and message
+
+            # if intersection of a set of expected keys and the actual keys has four items, it means all keys are there
+            key_version = "version"
+            key_reporter = "reporter"
+            key_report_time = "report_time"
+            key_message = "message"
+
+            expected_keys = {key_version, key_reporter, key_report_time, key_message}
+            if len(expected_keys & set(report.keys())) != 4:
+                print("Some key is missing in report")
+                return
+
+            # check that version is supported:
+            if report[key_version] not in self.message_processors:
+                print("Reporter sent message version I can't process:", report[key_version])
+                return
+
+            self.message_processors[report[key_version]](report[key_reporter],
+                                                         report[key_report_time],
+                                                         report[key_message]
+                                                         )
+            # TODO: evaluate data from peer and asses if it was good or not.
+            #       For invalid base64 etc, note that the node is bad
 
     def get_opinion_on_ip(self, ipaddress, max_age):
         # get report on that ip that is at most max_age old
@@ -115,4 +147,11 @@ class ReputationModel(multiprocessing.Process):
 
     def send_message_to_go(self, ip_data):
         # TODO: send data to p2p_pygo channel
+        pass
+
+    def parse_v1(self, reporter, report_time, message):
+        # at this point, we know that we expect score and confidence
+        # message is in base64
+        ip, reporter_peerid, score, confidence = "2.3.4.5", reporter, 0.1, 0.3
+        # TODO: save data to sqlite db
         pass
