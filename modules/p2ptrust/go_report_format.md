@@ -1,16 +1,17 @@
 # Report format, forwarding reports
 
 ## Reports sent between nodes
-Nodes send each other reports in JSON. The report always contains the key type (currently, on IP addresses are 
-supported), and the key itself - this is the IP address the node is reporting about. Then, the Evaluation object 
-follows, this aims to allow for easier expansion later on. Nodes advertise the Evaluation type with their version, when
-making first contact. In the basic version at the time of writing this, there are two values shared - score and 
-confidence.
+Nodes send each other reports in base64, which contains a json object. The report always contains the key type 
+(currently, on IP addresses are supported), and the key itself - this is the IP address the node is reporting about.
+Then, the Evaluation object follows, this aims to allow for easier expansion later on. Nodes advertise the Evaluation
+type with their version, when making first contact.
+
+At the time of writing this, the version is `v` and there are two values shared - score and confidence.
 
 The nodes always report the key type - currently, only IP addresses are supported, nodes should drop any unknown key
 types. A valid report can look like this:
 
-```
+```json
 {
   "key_type": "ip",
   "key": "1.2.3.40",
@@ -21,12 +22,17 @@ types. A valid report can look like this:
 }
 ```
 
+For easier transfer, the message is sent as base64 encoded string:
+```
+ewogICAgImtleV90eXBlIjogImlwIiwKICAgICJrZXkiOiAiMS4yLjMuNDAiLAogICAgImV........jYKfQ==
+```
+
 ## Go layer
 In the go layer, data is not unpacked. The received message is simply forwarded, with some additional information: the 
 sender's peerid, the version he claims to have, and the time the report was received (system time, unix)
 
 A report processed by the go layer could look like this
-```
+```json
 {
   "reporter": "abcsakughroiauqrghaui",
   "version": "v1",
@@ -42,11 +48,10 @@ A report processed by the go layer could look like this
 }
 ```
 
-Also, to ensure that the data pasted into the json is valid, the message is encoded as base64. In fact, any data sent by
-the peer will be base64 encoded, the go layer doesn't process the data at all (more on that later). To simplify 
-implementation, the message should always be an array (in this case, with only one element).
+Remember, that the message is really a base64 string, the go layer doesn't process the data at all (more on that later).
+To simplify implementation, the message should always be an array (in this case, with only one element).
 
-```
+```json
 [
   {
     "reporter": "abcsakughroiauqrghaui",
@@ -69,7 +74,7 @@ same. The go layer doesn't unpack the messages to find the key, because:
 The upper layers should not rely on the key to be same in all reports. Message sent to the high level processor can look
 like this:
 
-```
+```json
 [
   {
     "reporter": "abcsakughroiauqrghaui",
