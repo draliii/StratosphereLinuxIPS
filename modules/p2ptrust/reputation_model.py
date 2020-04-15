@@ -89,6 +89,8 @@ class ReputationModel(multiprocessing.Process):
             key_message = "message"
 
             expected_keys = {key_version, key_reporter, key_report_time, key_message}
+            # if the overlap of the two sets is smaller than the set of keys, some keys are missing. The & operator
+            # picks the items that are present in both sets: {2, 4, 6, 8, 10, 12} & {3, 6, 9, 12, 15} = {3, 12}
             if len(expected_keys & set(report.keys())) != 4:
                 print("Some key is missing in report")
                 return

@@ -4,9 +4,9 @@
 Nodes send each other reports in base64, which contains a json object. The report always contains the key type 
 (currently, on IP addresses are supported), and the key itself - this is the IP address the node is reporting about.
 Then, the Evaluation object follows, this aims to allow for easier expansion later on. Nodes advertise the Evaluation
-type with their version, when making first contact.
+type with the type attribute, and they share the type when first making contact.
 
-At the time of writing this, the version is `v` and there are two values shared - score and confidence.
+At the time of writing this, the only type is `score_confidence` and there are two values shared - score and confidence.
 
 The nodes always report the key type - currently, only IP addresses are supported, nodes should drop any unknown key
 types. A valid report can look like this:
@@ -24,18 +24,18 @@ types. A valid report can look like this:
 
 For easier transfer, the message is sent as base64 encoded string:
 ```
-ewogICAgImtleV90eXBlIjogImlwIiwKICAgICJrZXkiOiAiMS4yLjMuNDAiLAogICAgImV........jYKfQ==
+ewogICAgImtleV90eXBlIjogImlwIiwKICAgICJrZXkiOiAiMS........jYKfQ==
 ```
 
 ## Go layer
 In the go layer, data is not unpacked. The received message is simply forwarded, with some additional information: the 
-sender's peerid, the version he claims to have, and the time the report was received (system time, unix)
+sender's peerid, the message type he claims to have, and the time the report was received (system time, unix)
 
 A report processed by the go layer could look like this
 ```json
 {
   "reporter": "abcsakughroiauqrghaui",
-  "version": "v1",
+  "message_type": "score_confidence",
   "report_time": 154900000,
   "message": {
     "key_type": "ip",
@@ -55,7 +55,7 @@ To simplify implementation, the message should always be an array (in this case,
 [
   {
     "reporter": "abcsakughroiauqrghaui",
-    "version": "v1",
+    "message_type": "score_confidence",
     "report_time": 154900000,
     "message": "ewogICAgImtleV90eXBlIjogImlwIiwKICAgICJrZXkiOiAiMS4yLjMuNDAiLAogICAgImV........jYKfQ=="
   }
@@ -78,13 +78,13 @@ like this:
 [
   {
     "reporter": "abcsakughroiauqrghaui",
-    "version": "v1",
+    "message_type": "score_confidence",
     "report_time": 154900000,
     "message": "ewogICAgImtleV90eXBlIjogImlwIiwKICAgICJrZXkiOiAiMS4yLjMuNDAiLAogICAgImV........jYKfQ=="
   },
   {
     "reporter": "efghkughroiauqrghxyz",
-    "version": "v1",
+    "message_type": "score_confidence",
     "report_time": 1567000300,
     "message": "ewogICAgImtleV90eXBlIjogImlwIiwKICAgICJrZXkiOiAiMS4yLjMuNDAiLAogICAgImV........jYKfQ=="
   }
