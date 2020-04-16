@@ -1,13 +1,14 @@
 # Must imports
+import multiprocessing
+import platform
+
 from modules.p2ptrust.reputation_model import ReputationModel
 from modules.p2ptrust.trustdb import TrustDB
 from slips.common.abstracts import Module
-import multiprocessing
 from slips.core.database import __database__
-import platform
+
 
 # Your imports
-import time
 
 
 class Trust(Module, multiprocessing.Process):

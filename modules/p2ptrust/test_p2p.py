@@ -6,6 +6,36 @@ import random
 from modules.p2ptrust.p2ptrust import Trust
 
 
+def init_tests():
+    from slips.core.database import __database__
+    from multiprocessing import Queue
+    from outputProcess import OutputProcess
+
+    config = get_default_config()
+    outputProcessQueue = Queue()
+    outputProcessThread = OutputProcess(outputProcessQueue, 0, 1, config)
+    outputProcessThread.start()
+
+    __database__.setOutputQueue(outputProcessQueue)
+    module_process = Trust(outputProcessQueue, config)
+
+    module_process.start()
+
+    time.sleep(1)
+    print("Initialization complete")
+
+    return module_process, __database__
+
+
+def test_inputs():
+    import modules.p2ptrust.json_data as data
+
+    module_process, __database__ = init_tests()
+
+    __database__.publish("p2p_gopy", "go_data " + data.one_correct)
+    __database__.publish("p2p_gopy", "go_data " + data.two_correct)
+
+
 def get_default_config():
     cfg = configparser.ConfigParser()
     cfg.read_file(open("slips.conf"))
@@ -36,7 +66,7 @@ def slips_listener_test():
          progress, it should check ip B and return cached result and then run a new query for C)
     :return: None
     """
-    print("Running retry queue test")
+    print("Running slips listener test")
 
     # to test the database properly and use channels, whoisip must be run as a module (not in the testing mode)
     from slips.core.database import __database__
@@ -82,6 +112,6 @@ def slips_listener_test():
 
 if __name__ == "__main__":
     t = time.time()
-    slips_listener_test()
+    test_inputs()
 
     print(time.time() - t)
