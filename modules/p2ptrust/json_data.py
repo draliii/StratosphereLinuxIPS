@@ -1,27 +1,26 @@
 # data for testing message parsing. It is important to know that the json is sent by the go part of the code, so it is
 # not likely to be malicious. The message base64 part, however, comes from another peer and should be handled with care
 
-# TODO: replace message with valid data
-[
-  {
-    "reporter": "abcsakughroiauqrghaui",
-    "version": "v1",
-    "report_time": 154900000,
-    "message": "ewogICAgImtleV90eXBlIjogImlwIiwKICAgICJrZXkiOiAiMS4yLjMuNDAiLAogICAgImV........jYKfQ=="
-  },
-  {
-    "reporter": "efghkughroiauqrghxyz",
-    "version": "v1",
-    "report_time": 1567000300,
-    "message": "ewogICAgImtleV90eXBlIjogImlwIiwKICAgICJrZXkiOiAiMS4yLjMuNDAiLAogICAgImV........jYKfQ=="
-  }
-]
+
 
 # one correct report (OK)
-
+# message: {"key_type": "ip", "key": "1.2.3.40", "evaluation_type": "score_confidence", "evaluation": { "score": 0.9, "confidence": 0.6 }}
+one_correct = '[{' \
+'    "reporter": "abcsakughroiauqrghaui",' \
+'    "report_time": 154900000,' \
+'    "message": "eyJrZXlfdHlwZSI6ICJpcCIsICJrZXkiOiAiMS4yLjMuNDAiLCAiZXZhbHVhdGlvbl90eXBlIjogInNjb3JlX2NvbmZpZGVuY2UiLCAiZXZhbHVhdGlvbiI6IHsgInNjb3JlIjogMC45LCAiY29uZmlkZW5jZSI6IDAuNiB9fQ=="' \
+'  }]'
 
 # multiple correct reports (OK)
-
+two_correct = '[{' \
+'    "reporter": "abcsakughroiauqrghaui",' \
+'    "report_time": 154900000,' \
+'    "message": "eyJrZXlfdHlwZSI6ICJpcCIsICJrZXkiOiAiMS4yLjMuNDAiLCAiZXZhbHVhdGlvbl90eXBlIjogInNjb3JlX2NvbmZpZGVuY2UiLCAiZXZhbHVhdGlvbiI6IHsgInNjb3JlIjogMC45LCAiY29uZmlkZW5jZSI6IDAuNiB9fQ=="' \
+'  },{' \
+'    "reporter": "anotherreporterspeerid",' \
+'    "report_time": 154800000,' \
+'    "message": "eyJrZXlfdHlwZSI6ICJpcCIsICJrZXkiOiAiMS4yLjMuNSIsICJldmFsdWF0aW9uX3R5cGUiOiAic2NvcmVfY29uZmlkZW5jZSIsICJldmFsdWF0aW9uIjogeyAic2NvcmUiOiAwLjksICJjb25maWRlbmNlIjogMC43IH19"' \
+'  }]'
 
 # invalid json (fail on parsing)
 

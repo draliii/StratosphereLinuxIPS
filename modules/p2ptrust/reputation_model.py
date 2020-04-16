@@ -1,3 +1,5 @@
+import base64
+import ipaddress
 import json
 import multiprocessing
 from slips.core.database import Database as SlipsDatabase
@@ -17,7 +19,8 @@ class ReputationModel(multiprocessing.Process):
         self.rdb_channel = self.rdb.r.pubsub()
         self.rdb_channel.subscribe('p2p_gopy')
 
-        self.message_processors = {"v1": self.parse_v1}
+        self.evaluation_processors = {"score_confidence": self.process_evaluation_score_confidence}
+        self.key_type_processors = {"ip": validate_ip_address}
 
     def run(self):
         while True:
@@ -27,6 +30,10 @@ class ReputationModel(multiprocessing.Process):
             # TODO: handle errors here
 
             message = self.rdb_channel.get_message(timeout=None)
+
+            if message["type"] != "message":
+                continue
+
             print("RM:", message)
 
             data = message['data']
@@ -44,6 +51,7 @@ class ReputationModel(multiprocessing.Process):
 
             if command == "update":
                 # TODO: this will be called as a function
+                # this is not something that go is sending. this is data update from slips (kami's channel).
                 self.handle_update(parameters)
                 continue
 
@@ -83,27 +91,21 @@ class ReputationModel(multiprocessing.Process):
             # report is the dictionary containing reporter, version, report_time and message
 
             # if intersection of a set of expected keys and the actual keys has four items, it means all keys are there
-            key_version = "version"
             key_reporter = "reporter"
             key_report_time = "report_time"
             key_message = "message"
 
-            expected_keys = {key_version, key_reporter, key_report_time, key_message}
+            expected_keys = {key_reporter, key_report_time, key_message}
             # if the overlap of the two sets is smaller than the set of keys, some keys are missing. The & operator
             # picks the items that are present in both sets: {2, 4, 6, 8, 10, 12} & {3, 6, 9, 12, 15} = {3, 12}
-            if len(expected_keys & set(report.keys())) != 4:
+            if len(expected_keys & set(report.keys())) != 3:
                 print("Some key is missing in report")
                 return
 
-            # check that version is supported:
-            if report[key_version] not in self.message_processors:
-                print("Reporter sent message version I can't process:", report[key_version])
-                return
-
-            self.message_processors[report[key_version]](report[key_reporter],
-                                                         report[key_report_time],
-                                                         report[key_message]
-                                                         )
+            self.process_message(report[key_reporter],
+                                 report[key_report_time],
+                                 report[key_message]
+                                 )
             # TODO: evaluate data from peer and asses if it was good or not.
             #       For invalid base64 etc, note that the node is bad
 
@@ -151,9 +153,91 @@ class ReputationModel(multiprocessing.Process):
         # TODO: send data to p2p_pygo channel
         pass
 
-    def parse_v1(self, reporter, report_time, message):
-        # at this point, we know that we expect score and confidence
+    def process_message(self, reporter, report_time, message):
+
         # message is in base64
-        ip, reporter_peerid, score, confidence = "2.3.4.5", reporter, 0.1, 0.3
+        decoded = base64.b64decode(message)
+
+        # validate json
+        print(decoded)
+        data = json.loads(decoded)
+        try:
+            data = json.loads(decoded)
+        except:
+            # TODO: lower reputation
+            print("Peer sent invalid json")
+            return
+
+        print("peer json ok")
+
+        # validate keys in message
+        try:
+            key = data["key"]
+            key_type = data["key_type"]
+            evaluation_type = data["evaluation_type"]
+            evaluation = data["evaluation"]
+        except:
+            print("Correct keys are missing in the message")
+            # TODO: lower reputation
+            return
+
+        # validate keytype and key
+        if key_type not in self.key_type_processors:
+            print("Module can't process given type")
+            return
+
+        if not self.key_type_processors[key_type](key):
+            print("Provided key isn't a valid value for it's type")
+            # TODO: lower reputation
+            return
+
+        # validate evaluation type
+        if evaluation_type not in self.evaluation_processors:
+            print("Module can't process given evaluation type")
+            return
+
+        self.evaluation_processors[evaluation_type](reporter, report_time, key_type, key, evaluation)
+
+    def process_evaluation_score_confidence(self, reporter, report_time, key_type, key, evaluation):
+        # check that both fields are present
+        try:
+            score = evaluation["score"]
+            confidence = evaluation["confidence"]
+        except:
+            print("Score or confidence are missing")
+            # TODO: lower reputation
+            return
+
+        # validate data types
+        try:
+            score = float(score)
+            confidence = float(confidence)
+        except:
+            print("Score or confidence have wrong data type")
+            # TODO: lower reputation
+            return
+
+        # validate value ranges (must be from <0, 1>)
+        if score < 0 or score > 1:
+            print("Score value is out of bounds")
+            # TODO: lower reputation
+            return
+
+        if confidence < 0 or confidence > 1:
+            print("Confidence value is out of bounds")
+            # TODO: lower reputation
+            return
+
         # TODO: save data to sqlite db
+        result = "Data processing ok: reporter {}, report time {}, key {} ({}), score {}, confidence {}".format(reporter, report_time, key, key_type, score, confidence)
+        print(result)
         pass
+
+def validate_ip_address(ip):
+    try:
+        # this fails on invalid ip address
+        ipaddress.ip_address(ip)
+    except:
+        return False
+
+    return True
