@@ -32,8 +32,18 @@ def test_inputs():
 
     module_process, __database__ = init_tests()
 
-    __database__.publish("p2p_gopy", "go_data " + data.one_correct)
-    __database__.publish("p2p_gopy", "go_data " + data.two_correct)
+    for test_case_name, test_case in data.__dict__.items():
+        if test_case_name.startswith("_"):
+            continue
+        else:
+            print("#########################")
+            print("Running test case:", test_case_name)
+            print("#########################")
+            __database__.publish("p2p_gopy", "go_data " + test_case)
+            # the sleep is not needed, but it makes the log more readable
+            time.sleep(1)
+
+    print("Tests done.")
 
 
 def get_default_config():
