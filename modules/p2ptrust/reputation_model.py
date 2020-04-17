@@ -202,7 +202,7 @@ class ReputationModel(multiprocessing.Process):
 
         # validate keytype and key
         if key_type not in self.key_type_processors:
-            print("Module can't process given type")
+            print("Module can't process given key type")
             return
 
         if not self.key_type_processors[key_type](key):
@@ -264,9 +264,11 @@ def validate_ip_address(ip):
 
 def validate_timestamp(timestamp):
     try:
+        # originally, I wanted to accept only strict ints, not flaots. But for unix, it doesn't even matter. Also, the
+        # int() function turns it into int, so any floating point stuff is removed.
         int_timestamp = int(timestamp)
     except:
-        print("Timestamp is not int")
+        print("Timestamp is not a number")
         return False
 
 
