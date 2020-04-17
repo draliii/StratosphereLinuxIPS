@@ -2,45 +2,59 @@
 # not likely to be malicious. The message base64 part, however, comes from another peer and should be handled with care
 
 
-
 # one correct report (OK)
 # message: {"key_type": "ip", "key": "1.2.3.40", "evaluation_type": "score_confidence", "evaluation": { "score": 0.9, "confidence": 0.6 }}
 one_correct = '[{' \
-'    "reporter": "abcsakughroiauqrghaui",' \
-'    "report_time": 154900000,' \
-'    "message": "eyJrZXlfdHlwZSI6ICJpcCIsICJrZXkiOiAiMS4yLjMuNDAiLCAiZXZhbHVhdGlvbl90eXBlIjogInNjb3JlX2NvbmZpZGVuY2UiLCAiZXZhbHVhdGlvbiI6IHsgInNjb3JlIjogMC45LCAiY29uZmlkZW5jZSI6IDAuNiB9fQ=="' \
-'  }]'
+              '    "reporter": "abcsakughroiauqrghaui",' \
+              '    "report_time": 154900000,' \
+              '    "message": "eyJrZXlfdHlwZSI6ICJpcCIsICJrZXkiOiAiMS4yLjMuNDAiLCAiZXZhbHVhdGlvbl90eXBlIjogInNjb3JlX2' \
+              'NvbmZpZGVuY2UiLCAiZXZhbHVhdGlvbiI6IHsgInNjb3JlIjogMC45LCAiY29uZmlkZW5jZSI6IDAuNiB9fQ=="' \
+              '  }]'
 
 # multiple correct reports (OK)
 two_correct = '[{' \
-'    "reporter": "abcsakughroiauqrghaui",' \
-'    "report_time": 154900000,' \
-'    "message": "eyJrZXlfdHlwZSI6ICJpcCIsICJrZXkiOiAiMS4yLjMuNDAiLCAiZXZhbHVhdGlvbl90eXBlIjogInNjb3JlX2NvbmZpZGVuY2UiLCAiZXZhbHVhdGlvbiI6IHsgInNjb3JlIjogMC45LCAiY29uZmlkZW5jZSI6IDAuNiB9fQ=="' \
-'  },{' \
-'    "reporter": "anotherreporterspeerid",' \
-'    "report_time": 154800000,' \
-'    "message": "eyJrZXlfdHlwZSI6ICJpcCIsICJrZXkiOiAiMS4yLjMuNSIsICJldmFsdWF0aW9uX3R5cGUiOiAic2NvcmVfY29uZmlkZW5jZSIsICJldmFsdWF0aW9uIjogeyAic2NvcmUiOiAwLjksICJjb25maWRlbmNlIjogMC43IH19"' \
-'  }]'
+              '    "reporter": "abcsakughroiauqrghaui",' \
+              '    "report_time": 154900000,' \
+              '    "message": "eyJrZXlfdHlwZSI6ICJpcCIsICJrZXkiOiAiMS4yLjMuNDAiLCAiZXZhbHVhdGlvbl90eXBlIjogInNjb3JlX2' \
+              'NvbmZpZGVuY2UiLCAiZXZhbHVhdGlvbiI6IHsgInNjb3JlIjogMC45LCAiY29uZmlkZW5jZSI6IDAuNiB9fQ=="' \
+              '  },{' \
+              '    "reporter": "anotherreporterspeerid",' \
+              '    "report_time": 154800000,' \
+              '    "message": "eyJrZXlfdHlwZSI6ICJpcCIsICJrZXkiOiAiMS4yLjMuNSIsICJldmFsdWF0aW9uX3R5cGUiOiAic2NvcmVfY2' \
+              '9uZmlkZW5jZSIsICJldmFsdWF0aW9uIjogeyAic2NvcmUiOiAwLjksICJjb25maWRlbmNlIjogMC43IH19"' \
+              '  }]'
 
 # invalid json (fail on parsing)
 invalid_json1 = '[}'
 invalid_json2 = '{"key_type": "ip", "key": "1.2.3.40", "evaluation_type": "score_confidence"'
 invalid_json3 = '{"key_type": "ip", "key": "1.2.3.40", "evaluation_type": "score_confidence}'
 
-# valid json with missing fields (fail on validating json)
-
-
 # json isn't a list
 not_a_list = '{' \
-'    "reporter": "abcsakughroiauqrghaui",' \
-'    "report_time": 154900000,' \
-'    "message": "eyJrZXlfdHlwZSI6ICJpcCIsICJrZXkiOiAiMS4yLjMuNDAiLCAiZXZhbHVhdGlvbl90eXBlIjogInNjb3JlX2NvbmZpZGVuY2UiLCAiZXZhbHVhdGlvbiI6IHsgInNjb3JlIjogMC45LCAiY29uZmlkZW5jZSI6IDAuNiB9fQ=="' \
-'  }'
+             '    "reporter": "abcsakughroiauqrghaui",' \
+             '    "report_time": 154900000,' \
+             '    "message": "eyJrZXlfdHlwZSI6ICJpcCIsICJrZXkiOiAiMS4yLjMuNDAiLCAiZXZhbHVhdGlvbl90eXBlIjogInNjb3JlX2N' \
+             'vbmZpZGVuY2UiLCAiZXZhbHVhdGlvbiI6IHsgInNjb3JlIjogMC45LCAiY29uZmlkZW5jZSI6IDAuNiB9fQ=="' \
+             '  }'
 
+# json is an empty list
 empty_list = '[]'
 
-# valid json with other fields (OK)
+# valid json with missing fields (fail on validating json)
+missing_fields = '[{' \
+                 '    "reporter": "abcsakughroiauqrghaui",' \
+                 '    "message": "eyJrZXlfdHlwZSI6ICJpcCIsICJrZXkiOiAiMS4yLjMuNDAiLCAiZXZhbHVhdGlvbl90eXBlIjogInNjb3J' \
+                 'lX2NvbmZpZGVuY2UiLCAiZXZhbHVhdGlvbiI6IHsgInNjb3JlIjogMC45LCAiY29uZmlkZW5jZSI6IDAuNiB9fQ=="' \
+                 '  }]'
 
+# valid json with other fields (OK)
+too_many_fields = '[{' \
+                  '    "reporter": "abcsakughroiauqrghaui",' \
+                  '    "some_other_key": "a useless value",' \
+                  '    "report_time": 154900000,' \
+                  '    "message": "eyJrZXlfdHlwZSI6ICJpcCIsICJrZXkiOiAiMS4yLjMuNDAiLCAiZXZhbHVhdGlvbl90eXBlIjogInNjb3' \
+                  'JlX2NvbmZpZGVuY2UiLCAiZXZhbHVhdGlvbiI6IHsgInNjb3JlIjogMC45LCAiY29uZmlkZW5jZSI6IDAuNiB9fQ=="' \
+                  '  }]'
 
 # valid json, time is string (fail on reading values from json)
 
