@@ -5,6 +5,8 @@
 # one correct report (OK)
 # message: {"key_type": "ip", "key": "1.2.3.40", "evaluation_type": "score_confidence",
 #           "evaluation": { "score": 0.9, "confidence": 0.6 }}
+import base64 as __b64
+
 one_correct = '[{' \
               '    "reporter": "abcsakughroiauqrghaui",' \
               '    "report_time": 154900000,' \
@@ -91,9 +93,20 @@ wrong_time_future = '[{' \
 
 
 # message has unknown type
-
+__message = b'{"key_type": "ip", "key": "1.2.3.40", "evaluation_type": "unknown type", "evaluation": ["eval1", "eval2"]}'
+__b64m = __b64.b64encode(__message)
+wrong_message_type = '[{' \
+              '    "reporter": "abcsakughroiauqrghaui",' \
+              '    "report_time": 154900000,' \
+              '    "message": "' + __b64m.decode() + '"' \
+              '  }]'
 
 # message can't be read as base 64 (fail in message interpretation)
+wrong_message_base64 = '[{' \
+              '    "reporter": "abcsakughroiauqrghaui",' \
+              '    "report_time": 154900000,' \
+              '    "message": "][bpsrt;hla;rkgty[a0rwg,m;aestrglk"' \
+              '  }]'
 
 
 # message can't be parsed as json

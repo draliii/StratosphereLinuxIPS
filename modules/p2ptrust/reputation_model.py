@@ -1,4 +1,5 @@
 import base64
+import binascii
 import ipaddress
 import json
 import multiprocessing
@@ -170,11 +171,15 @@ class ReputationModel(multiprocessing.Process):
     def process_message(self, reporter, report_time, message):
 
         # message is in base64
-        decoded = base64.b64decode(message)
+        try:
+            decoded = base64.b64decode(message)
+        except binascii.Error:
+            # TODO: lower reputation
+            print("base64 cannot be parsed properly")
+            return
 
         # validate json
         print(decoded)
-        data = json.loads(decoded)
         try:
             data = json.loads(decoded)
         except:
