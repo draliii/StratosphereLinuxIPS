@@ -2,6 +2,8 @@ import base64
 import ipaddress
 import json
 import multiprocessing
+import time
+
 from slips.core.database import Database as SlipsDatabase
 from statistics import mean
 
@@ -108,6 +110,10 @@ class ReputationModel(multiprocessing.Process):
             # picks the items that are present in both sets: {2, 4, 6, 8, 10, 12} & {3, 6, 9, 12, 15} = {3, 12}
             if len(expected_keys & set(report.keys())) != 3:
                 print("Some key is missing in report")
+                return
+
+            if not validate_timestamp(report[key_report_time]):
+                print("Invalid timestamp")
                 return
 
             self.process_message(report[key_reporter],
@@ -246,6 +252,21 @@ def validate_ip_address(ip):
         # this fails on invalid ip address
         ipaddress.ip_address(ip)
     except:
+        return False
+
+    return True
+
+
+def validate_timestamp(timestamp):
+    try:
+        int_timestamp = int(timestamp)
+    except:
+        print("Timestamp is not int")
+        return False
+
+
+    if int_timestamp > time.time() or int_timestamp < 0:
+        print("Invalid timestamp value")
         return False
 
     return True

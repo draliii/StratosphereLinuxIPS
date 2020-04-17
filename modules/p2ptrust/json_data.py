@@ -3,7 +3,8 @@
 
 
 # one correct report (OK)
-# message: {"key_type": "ip", "key": "1.2.3.40", "evaluation_type": "score_confidence", "evaluation": { "score": 0.9, "confidence": 0.6 }}
+# message: {"key_type": "ip", "key": "1.2.3.40", "evaluation_type": "score_confidence",
+#           "evaluation": { "score": 0.9, "confidence": 0.6 }}
 one_correct = '[{' \
               '    "reporter": "abcsakughroiauqrghaui",' \
               '    "report_time": 154900000,' \
@@ -56,7 +57,37 @@ too_many_fields = '[{' \
                   'JlX2NvbmZpZGVuY2UiLCAiZXZhbHVhdGlvbiI6IHsgInNjb3JlIjogMC45LCAiY29uZmlkZW5jZSI6IDAuNiB9fQ=="' \
                   '  }]'
 
-# valid json, time is string (fail on reading values from json)
+# valid json, time wrong
+wrong_time_string = '[{' \
+              '    "reporter": "abcsakughroiauqrghaui",' \
+              '    "report_time": "just_now",' \
+              '    "message": "eyJrZXlfdHlwZSI6ICJpcCIsICJrZXkiOiAiMS4yLjMuNDAiLCAiZXZhbHVhdGlvbl90eXBlIjogInNjb3JlX2' \
+              'NvbmZpZGVuY2UiLCAiZXZhbHVhdGlvbiI6IHsgInNjb3JlIjogMC45LCAiY29uZmlkZW5jZSI6IDAuNiB9fQ=="' \
+              '  }]'
+wrong_time_empty_string = '[{' \
+              '    "reporter": "abcsakughroiauqrghaui",' \
+              '    "report_time": "",' \
+              '    "message": "eyJrZXlfdHlwZSI6ICJpcCIsICJrZXkiOiAiMS4yLjMuNDAiLCAiZXZhbHVhdGlvbl90eXBlIjogInNjb3JlX2' \
+              'NvbmZpZGVuY2UiLCAiZXZhbHVhdGlvbiI6IHsgInNjb3JlIjogMC45LCAiY29uZmlkZW5jZSI6IDAuNiB9fQ=="' \
+              '  }]'
+wrong_time_negative = '[{' \
+              '    "reporter": "abcsakughroiauqrghaui",' \
+              '    "report_time": -3,' \
+              '    "message": "eyJrZXlfdHlwZSI6ICJpcCIsICJrZXkiOiAiMS4yLjMuNDAiLCAiZXZhbHVhdGlvbl90eXBlIjogInNjb3JlX2' \
+              'NvbmZpZGVuY2UiLCAiZXZhbHVhdGlvbiI6IHsgInNjb3JlIjogMC45LCAiY29uZmlkZW5jZSI6IDAuNiB9fQ=="' \
+              '  }]'
+wrong_time_float = '[{' \
+              '    "reporter": "abcsakughroiauqrghaui",' \
+              '    "report_time": 2.5,' \
+              '    "message": "eyJrZXlfdHlwZSI6ICJpcCIsICJrZXkiOiAiMS4yLjMuNDAiLCAiZXZhbHVhdGlvbl90eXBlIjogInNjb3JlX2' \
+              'NvbmZpZGVuY2UiLCAiZXZhbHVhdGlvbiI6IHsgInNjb3JlIjogMC45LCAiY29uZmlkZW5jZSI6IDAuNiB9fQ=="' \
+              '  }]'
+wrong_time_future = '[{' \
+              '    "reporter": "abcsakughroiauqrghaui",' \
+              '    "report_time": 2587122908,' \
+              '    "message": "eyJrZXlfdHlwZSI6ICJpcCIsICJrZXkiOiAiMS4yLjMuNDAiLCAiZXZhbHVhdGlvbl90eXBlIjogInNjb3JlX2' \
+              'NvbmZpZGVuY2UiLCAiZXZhbHVhdGlvbiI6IHsgInNjb3JlIjogMC45LCAiY29uZmlkZW5jZSI6IDAuNiB9fQ=="' \
+              '  }]'
 
 
 # message has unknown type
