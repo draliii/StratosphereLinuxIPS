@@ -36,9 +36,10 @@ def test_inputs():
         if test_case_name.startswith("_"):
             continue
         else:
+            print()
             print("#########################")
             print("Running test case:", test_case_name)
-            print("#########################")
+            print("-------------------------")
             __database__.publish("p2p_gopy", "go_data " + test_case)
             # the sleep is not needed, but it makes the log more readable
             time.sleep(1)

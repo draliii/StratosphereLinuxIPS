@@ -87,6 +87,14 @@ class ReputationModel(multiprocessing.Process):
             print("Go send invalid json")
             return
 
+        if type(reports) != list:
+            print("Expected list, got something else")
+            return
+
+        if len(reports) == 0:
+            print("Data list is empty")
+            return
+
         for report in reports:
             # report is the dictionary containing reporter, version, report_time and message
 

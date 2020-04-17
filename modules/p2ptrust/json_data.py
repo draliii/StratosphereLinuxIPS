@@ -23,10 +23,21 @@ two_correct = '[{' \
 '  }]'
 
 # invalid json (fail on parsing)
-
+invalid_json1 = '[}'
+invalid_json2 = '{"key_type": "ip", "key": "1.2.3.40", "evaluation_type": "score_confidence"'
+invalid_json3 = '{"key_type": "ip", "key": "1.2.3.40", "evaluation_type": "score_confidence}'
 
 # valid json with missing fields (fail on validating json)
 
+
+# json isn't a list
+not_a_list = '{' \
+'    "reporter": "abcsakughroiauqrghaui",' \
+'    "report_time": 154900000,' \
+'    "message": "eyJrZXlfdHlwZSI6ICJpcCIsICJrZXkiOiAiMS4yLjMuNDAiLCAiZXZhbHVhdGlvbl90eXBlIjogInNjb3JlX2NvbmZpZGVuY2UiLCAiZXZhbHVhdGlvbiI6IHsgInNjb3JlIjogMC45LCAiY29uZmlkZW5jZSI6IDAuNiB9fQ=="' \
+'  }'
+
+empty_list = '[]'
 
 # valid json with other fields (OK)
 
