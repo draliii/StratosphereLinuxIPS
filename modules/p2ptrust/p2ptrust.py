@@ -2,13 +2,11 @@
 import multiprocessing
 import platform
 
-from modules.p2ptrust.reputation_model import ReputationModel
+# Your imports
 from modules.p2ptrust.trustdb import TrustDB
+from modules.p2ptrust.go_listener import GoListener
 from slips.common.abstracts import Module
 from slips.core.database import __database__
-
-
-# Your imports
 
 
 class Trust(Module, multiprocessing.Process):
@@ -26,7 +24,7 @@ class Trust(Module, multiprocessing.Process):
         self.config = config
         # Start the DB
         __database__.start(self.config)
-        # To which channels do you wnat to subscribe? When a message arrives on the channel the module will wakeup
+        # To which channels do you want to subscribe? When a message arrives on the channel the module will wakeup
         # The options change, so the last list is on the slips/core/database.py file. However common options are:
         # - new_ip
         # - tw_modified
@@ -51,8 +49,8 @@ class Trust(Module, multiprocessing.Process):
 
         self.sqlite_db = TrustDB(r"trustdb.db")
 
-        self.reputation_process = ReputationModel(self.sqlite_db, __database__, self.config)
-        self.reputation_process.start()
+        self.go_listener_process = GoListener(self.sqlite_db, __database__, self.config)
+        self.go_listener_process.start()
         # TODO: start go process
 
     def print(self, text, verbose=1, debug=0):
@@ -88,7 +86,7 @@ class Trust(Module, multiprocessing.Process):
                     print("Received stop signal from slips, stopping")
                     self.sqlite_db.__del__()
                     # TODO: kill go process as well
-                    self.reputation_process.kill()
+                    self.go_listener_process.kill()
                     return True
 
                 # read what IP info changed
