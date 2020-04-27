@@ -38,6 +38,9 @@ class GoListener(multiprocessing.Process):
 
     def __init__(self, trustdb: TrustDB, redis_database: SlipsDatabase, config):
         super().__init__()
+
+        print("Starting go listener")
+
         # TODO: add proper OutputProcess printing
         self.trustdb = trustdb
         self.rdb = redis_database

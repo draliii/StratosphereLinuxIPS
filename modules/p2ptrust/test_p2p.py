@@ -4,6 +4,7 @@ import time
 import random
 
 from modules.p2ptrust.p2ptrust import Trust
+from slips.core.database import Database
 
 
 def init_tests():
@@ -25,6 +26,16 @@ def init_tests():
     print("Initialization complete")
 
     return module_process, __database__
+
+
+def set_ip_data(database: Database, ip: str, data: dict):
+    database.setNewIP(ip)
+    database.setInfoForIPs(ip, data)
+
+
+def test_slips_data():
+    module_process, database = init_tests()
+    set_ip_data(database, "1.2.3.4", {"score": 0.3, "confidence": 1})
 
 
 def test_inputs():
@@ -123,6 +134,7 @@ def slips_listener_test():
 
 if __name__ == "__main__":
     t = time.time()
-    test_inputs()
+    # test_inputs()
+    test_slips_data()
 
     print(time.time() - t)
