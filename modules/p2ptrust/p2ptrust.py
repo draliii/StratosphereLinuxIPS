@@ -246,7 +246,7 @@ class Trust(Module, multiprocessing.Process):
         # if data is in cache and is recent enough, it is returned from cache
         try:
             score, confidence, network_score, timestamp = self.sqlite_db.get_cached_network_opinion("ip", ip_address)
-            if time.time() - timestamp < cache_age:
+            if score is not None and time.time() - timestamp < cache_age:
                 self.send_to_slips(ip_address + " " + score + " " + confidence + " " + network_score)
                 return
         except KeyError:
@@ -263,5 +263,11 @@ class Trust(Module, multiprocessing.Process):
 
         # get data from db, processed by the trust model
         combined_score, combined_confidence, network_score = self.reputation_model.get_opinion_on_ip(ip_address)
-        self.send_to_slips(ip_address + " " + combined_score + " " + combined_confidence + " " + network_score)
+
+        # no data in db - this happens when testing, if there is not enough data on peers
+        if combined_score is None:
+            message = "None :("
+        else:
+            message = ip_address + " " + combined_score + " " + combined_confidence + " " + network_score
+        self.send_to_slips(message)
         pass

@@ -23,6 +23,8 @@ class ReputationModel:
         # if no such report is found:
 
         reports_on_ip = self.trustdb.get_opinion_on_ip(ipaddr)
+        if len(reports_on_ip) == 0:
+            return None, None, None
         network_score, combined_score, combined_confidence = self.assemble_peer_opinion(reports_on_ip)
 
         self.trustdb.update_cached_network_opinion("ip", ipaddr, combined_score, combined_confidence, network_score)
