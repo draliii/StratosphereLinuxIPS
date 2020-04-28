@@ -32,6 +32,29 @@ def validate_ip_address(ip):
     return True
 
 
+def validate_slips_data(message_data: str) -> (str, int):
+    """
+    Check that message received from slips channel has correct format: ip, timeout
+
+    The message should contain an IP address (string), followed by a space and an integer timeout. If the message is
+    correct, the two values are returned as a tuple (str, int). If not, (None, None) is returned.
+    :param message_data: data from slips request channel
+    :return: parsed values or None tuple
+    """
+    try:
+        ip_address, time_since_cached = message_data.split(" ", 1)
+        time_since_cached = int(time_since_cached)
+
+        if not validate_ip_address(ip_address):
+            return None, None
+
+        return ip_address, time_since_cached
+
+    except ValueError:
+        # message has wrong format
+        return None, None
+
+
 class Trust(Module, multiprocessing.Process):
     # Name: short name of the module. Do not use spaces
     name = 'p2ptrust'
@@ -218,9 +241,10 @@ class Trust(Module, multiprocessing.Process):
         :return: None, the result is sent via a channel
         """
 
-        ip_address, time_since_cached = message_data.split(" ", 1)
-
-
+        ip_address, time_since_cached = validate_slips_data(message_data)
+        if ip_address is None:
+            # TODO: send error notice to the channel?
+            return
 
         # is in cache?
         # return from cache
