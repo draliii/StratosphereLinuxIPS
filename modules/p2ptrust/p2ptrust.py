@@ -3,6 +3,8 @@ import multiprocessing
 import platform
 
 # Your imports
+import time
+
 from modules.p2ptrust.trustdb import TrustDB
 from modules.p2ptrust.go_listener import GoListener
 from slips.common.abstracts import Module
@@ -127,61 +129,45 @@ class Trust(Module, multiprocessing.Process):
         print("[publish]", message)
         __database__.publish("p2p_pygo", message)
 
-    def handle_update(self, parameters: str):
+    def handle_update(self, ip_address: str):
         """
         Handle IP scores changing in Slips received from the ip_info_change channel
 
         This method checks if new score differs from opinion known to the network, and if so, it means that it is worth
         sharing and it will be shared. Additionally, if the score is serious, the node will be blamed
-        :param parameters:
+        :param ip_address:
         :return:
         """
 
         # abort if the IP is not valid
-        if not validate_ip_address(parameters):
+        if not validate_ip_address(ip_address):
             return
 
-        # poll new info from redis
-        ip_info = __database__.getIPData(parameters)
-
-        slips_score, slips_confidence = read_data_from_ip_info(ip_info)
-        # check that both values were provided
-        if slips_score is None:
+        score, confidence = self.get_ip_info(ip_address)
+        if score is None:
             return
-
-        # TODO: implement a cache
-        # fetch ip data from the cache/db
-
-        # compare slips data with data in go
-        # if data is different from network opinion and not shared recently, share with network
-
-        # call proper function in rep model to update IP info
-
-        # validate inputs
-        try:
-            ip, score, confidence = parameters.split(" ", 2)
-            score = float(score)
-            confidence = float(confidence)
-        except ValueError as e:
-            print("Parsing parameters failed, expected str, float, float:", parameters)
-            return
-        except TypeError as e:
-            print("Parsing parameters failed, expected 3 values (ip, score, confidence):", parameters)
-            return
-
-        # if value is significant (different from cached, or completely new)
 
         # TODO: discuss - only share score if confidence is high enough?
+        # compare slips data with data in go
+        data_already_reported = True
+        try:
+            reported_data = self.last_ip_update[ip_address]
+            if abs(score - reported_data[1]) < 0.1:
+                data_already_reported = False
+        except KeyError:
+            data_already_reported = False
+        except IndexError:
+            # data saved in local db have wrong structure, this is an invalid state
+            return
 
-        # if value is significant for a blame
+        if not data_already_reported:
+            # TODO: actually send the data here
+            self.publish("BROADCAST %s %f %f" % (ip_address, score, confidence))
+
+        # TODO: discuss - based on what criteria should we start blaming?
         if score > 0.8 and confidence > 0.6:
-            # TODO: justify the numbers
-            # TODO: also, the score will not be reported, if it was already blamed before - is this what we want?
-            self.publish("BLAME %s" % ip)
-        else:
-            self.publish("BROADCAST %s %f %f" % (ip, score, confidence))
-
-        # TODO: it might also be worth here to share the data with the library, right...
+            # TODO: blame should support score and confidence as well
+            self.publish("BLAME %s" % ip_address)
 
     def handle_slips_ask(self, ip):
         # is in cache?
@@ -206,3 +192,17 @@ class Trust(Module, multiprocessing.Process):
         # update data for ip in the cache
         # this is the place where some trust decisions can again be made
         pass
+
+    def get_ip_info(self, ip_address):
+        # poll new info from redis
+        ip_info = __database__.getIPData(ip_address)
+
+        slips_score, slips_confidence = read_data_from_ip_info(ip_info)
+        # check that both values were provided
+        if slips_score is None:
+            return None, None
+
+        # update data in cache
+        self.slips_opinion[ip_address] = (time.time(), slips_score, slips_confidence)
+
+        return slips_score, slips_confidence
