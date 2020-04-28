@@ -156,11 +156,11 @@ class Trust(Module, multiprocessing.Process):
 
     def send_to_go(self, message):
         print("[publish trust -> go]", message)
-        __database__.send_to_go("p2p_pygo", message)
+        __database__.publish("p2p_pygo", message)
 
     def send_to_slips(self, message):
         print("[publish trust -> slips]", message)
-        __database__.send_to_go("p2p_data_request", message)
+        __database__.publish("p2p_data_request", message)
 
     def handle_update(self, ip_address: str):
         """
