@@ -51,7 +51,7 @@ def test_inputs():
             print("#########################")
             print("Running test case:", test_case_name)
             print("-------------------------")
-            __database__.publish("p2p_gopy", "go_data " + test_case)
+            __database__.send_to_go("p2p_gopy", "go_data " + test_case)
             # the sleep is not needed, but it makes the log more readable
             time.sleep(1)
 
@@ -108,28 +108,28 @@ def slips_listener_test():
     time.sleep(1)
 
     # invalid command
-    __database__.publish("p2p_gopy", "foooooooooo")
-    __database__.publish("p2p_gopy", "")
+    __database__.send_to_go("p2p_gopy", "foooooooooo")
+    __database__.send_to_go("p2p_gopy", "")
 
     # invalid command with parameters
-    __database__.publish("p2p_gopy", "foooooooooo bar 3")
+    __database__.send_to_go("p2p_gopy", "foooooooooo bar 3")
 
     # valid command, no parameters
-    __database__.publish("p2p_gopy", "UPDATE")
+    __database__.send_to_go("p2p_gopy", "UPDATE")
 
     # valid update
-    __database__.publish("p2p_gopy", "UPDATE ipaddress 1 1")
-    __database__.publish("p2p_gopy", "UPDATE ipaddress 1.999999999999999 3")
+    __database__.send_to_go("p2p_gopy", "UPDATE ipaddress 1 1")
+    __database__.send_to_go("p2p_gopy", "UPDATE ipaddress 1.999999999999999 3")
 
     # update with unparsable parameters
-    __database__.publish("p2p_gopy", "UPDATE ipaddress 1 five")
-    __database__.publish("p2p_gopy", "UPDATE ipaddress 3")
+    __database__.send_to_go("p2p_gopy", "UPDATE ipaddress 1 five")
+    __database__.send_to_go("p2p_gopy", "UPDATE ipaddress 3")
 
     data = make_data()
-    __database__.publish("p2p_gopy", "GO_DATA %s" % data)
+    __database__.send_to_go("p2p_gopy", "GO_DATA %s" % data)
 
     # stop instruction
-    __database__.publish("p2p_gopy", "stop_process")
+    __database__.send_to_go("p2p_gopy", "stop_process")
 
 
 if __name__ == "__main__":

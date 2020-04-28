@@ -82,8 +82,7 @@ class TrustDB:
                           " opinion_cache (key_type, reported_key, score, confidence, network_score, update_time)"
                           "VALUES (?, ?, ?, ?, ?, strftime('%s','now'));", (key_type, ipaddress, score, confidence, network_score))
 
-
-    def get_opinion_on_ip(self, ipaddress, update_cache=False):
+    def get_opinion_on_ip(self, ipaddress):
         reports_cur = self.conn.execute("SELECT reports.reporter_peerid AS reporter_peerid,"
                                         "       MAX(reports.update_time) AS report_timestamp,"
                                         "       reports.score AS report_score,"

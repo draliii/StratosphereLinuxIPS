@@ -1,10 +1,3 @@
-import base64
-import binascii
-import ipaddress
-import json
-import multiprocessing
-import time
-
 from slips.core.database import Database as SlipsDatabase
 from statistics import mean
 
@@ -25,22 +18,15 @@ class ReputationModel:
         self.rdb = redis_database
         self.config = config
 
-    def request_ip_reputation(self, ip: str, ):
-        # TODO: check if data is in cache
-        # TODO: if yes and recent enough, return that. Otherwise, start the ask process
-        ask_process = multiprocessing.Process(target=self.handle_slips_ask, args=(parameters,))
-        ask_process.start()
-
-        # TODO: wait for specified time, then call normal function to retrieve data from db
-
     def get_opinion_on_ip(self, ipaddr):
         # get report on that ip that is at most max_age old
         # if no such report is found:
 
-        reports_on_ip = self.trustdb.get_opinion_on_ip(ipaddr, update_cache=True)
+        reports_on_ip = self.trustdb.get_opinion_on_ip(ipaddr)
         network_score, combined_score, combined_confidence = self.assemble_peer_opinion(reports_on_ip)
 
         self.trustdb.update_network_opinion("ip", ipaddr, combined_score, combined_confidence, network_score)
+        return combined_score, combined_confidence, network_score
 
     def compute_peer_reputation(self, trust, score, confidence):
         return trust * score * confidence
@@ -72,8 +58,3 @@ class ReputationModel:
         network_score = report_avg
 
         return network_score, combined_score, combined_confidence
-
-    def send_message_to_go(self, ip_data):
-        # TODO: send data to p2p_pygo channel
-        # TODO: this should probably be implemented elsewhere
-        pass

@@ -8,6 +8,7 @@ import time
 
 from modules.p2ptrust.trustdb import TrustDB
 from modules.p2ptrust.go_listener import GoListener
+from p2ptrust.reputation_model import ReputationModel
 from slips.common.abstracts import Module
 from slips.core.database import __database__
 from modules.p2ptrust.go_listener import validate_ip_address
@@ -80,7 +81,7 @@ class Trust(Module, multiprocessing.Process):
 
         self.pubsub = __database__.r.pubsub()
         self.pubsub.subscribe('ip_info_change')
-        self.pubsub.subscribe('p2p_data_requests')
+        self.pubsub.subscribe('p2p_data_request')
 
         # Set the timeout based on the platform. This is because the pyredis lib does not have officially recognized the
         # timeout=None as it works in only macos and timeout=-1 as it only works in linux
@@ -95,6 +96,7 @@ class Trust(Module, multiprocessing.Process):
             self.timeout = None
 
         self.sqlite_db = TrustDB(r"trustdb.db")
+        self.reputation_model = ReputationModel(self.sqlite_db, __database__, self.config)
 
         self.go_listener_process = GoListener(self.sqlite_db, __database__, self.config)
         self.go_listener_process.start()
@@ -148,7 +150,7 @@ class Trust(Module, multiprocessing.Process):
                 if message["channel"] == "ip_info_change":
                     self.handle_update(message["data"])
 
-                if message["channel"] == "p2p_data_requests":
+                if message["channel"] == "p2p_data_request":
                     self.handle_data_request(message["data"])
 
         except KeyboardInterrupt:
@@ -160,9 +162,13 @@ class Trust(Module, multiprocessing.Process):
             self.print(str(inst), 0, 1)
             return True
 
-    def publish(self, message):
-        print("[publish]", message)
-        __database__.publish("p2p_pygo", message)
+    def send_to_go(self, message):
+        print("[publish trust -> go]", message)
+        __database__.send_to_go("p2p_pygo", message)
+
+    def send_to_slips(self, message):
+        print("[publish trust -> slips]", message)
+        __database__.send_to_go("p2p_data_request", message)
 
     def handle_update(self, ip_address: str):
         """
@@ -197,12 +203,12 @@ class Trust(Module, multiprocessing.Process):
 
         if not data_already_reported:
             # TODO: actually send the data here
-            self.publish("BROADCAST %s %f %f" % (ip_address, score, confidence))
+            self.send_to_go("BROADCAST %s %f %f" % (ip_address, score, confidence))
 
         # TODO: discuss - based on what criteria should we start blaming?
         if score > 0.8 and confidence > 0.6:
             # TODO: blame should support score and confidence as well
-            self.publish("BLAME %s" % ip_address)
+            self.send_to_go("BLAME %s" % ip_address)
 
     def get_ip_info(self, ip_address):
         # poll new info from redis
@@ -247,11 +253,11 @@ class Trust(Module, multiprocessing.Process):
             return
 
         # if data is in cache and is recent enough, it is returned from cache
+        # TODO: switch to cache inside db
         try:
             timestamp, score, confidence, _ = self.last_ip_update[ip_address]
             if time.time() - timestamp < cache_age:
-                # TODO:
-                result = score, confidence
+                self.send_to_slips(ip_address + " " + score + " " + confidence)
                 return
         except KeyError:
             pass
@@ -259,13 +265,13 @@ class Trust(Module, multiprocessing.Process):
         # TODO: in some cases, it is not necessary to wait, specify that and implement it
         #       I do not remember writing this comment. I have no idea in which cases there is no need to wait? Maybe
         #       when everybody responds asap?
-        self.publish("ASK %s" % ip_address)
+        self.send_to_go("ASK %s" % ip_address)
 
         # go will send a reply in no longer than 10s (or whatever the timeout there is set to). The reply will be
         # processed by an independent process in this module and database will be updated accordingly
+        time.sleep(10)
 
-        # TODO: get data from trustdb
-        # TODO: return the result
-        # this should contain recent opinions - on each report, the "network opinion" should be recalculated, and saved
-        # ip: (timestamp, score, confidence, network trust data..,?)
+        # get data from db, processed by the trust model
+        combined_score, combined_confidence, network_score = self.reputation_model.get_opinion_on_ip(ip_address)
+        self.send_to_slips(ip_address + " " + combined_score + " " + combined_confidence + " " + network_score)
         pass
