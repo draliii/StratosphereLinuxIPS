@@ -64,6 +64,16 @@ class Trust(Module, multiprocessing.Process):
         self.go_listener_process = GoListener(self.sqlite_db, __database__, self.config)
         self.go_listener_process.start()
 
+        # cache for reports sent/received
+        # this should contain recent opinions - on each report, the "network opinion" should be recalculated, and saved
+        # ip: (timestamp, score, confidence, network trust data..,?)
+        self.last_ip_update = {}
+
+        # cache for detections from slips
+        # ip: (timestamp, score, confidence)
+        # if ip is not here, it should be fetched from slips
+        self.slips_opinion = {}
+
     def print(self, text, verbose=1, debug=0):
         """ 
         Function to use to print text using the outputqueue of slips.
