@@ -101,16 +101,6 @@ class Trust(Module, multiprocessing.Process):
         self.go_listener_process = GoListener(self.sqlite_db, __database__, self.config)
         self.go_listener_process.start()
 
-        # cache for reports sent/received
-        # this should contain recent opinions - on each report, the "network opinion" should be recalculated, and saved
-        # ip: (timestamp, score, confidence, network trust data..,?)
-        self.last_ip_update = {}
-
-        # cache for detections from slips
-        # ip: (timestamp, score, confidence)
-        # if ip is not here, it should be fetched from slips
-        self.slips_opinion = {}
-
     def print(self, text, verbose=1, debug=0):
         """ 
         Function to use to print text using the outputqueue of slips.
@@ -184,7 +174,7 @@ class Trust(Module, multiprocessing.Process):
         if not validate_ip_address(ip_address):
             return
 
-        score, confidence = self.get_ip_info(ip_address)
+        score, confidence = self.get_ip_info_from_slips(ip_address)
         if score is None:
             return
 
@@ -192,8 +182,8 @@ class Trust(Module, multiprocessing.Process):
         # compare slips data with data in go
         data_already_reported = True
         try:
-            reported_data = self.last_ip_update[ip_address]
-            if abs(score - reported_data[1]) < 0.1:
+            cached_score, cached_confidence, network_score, timestamp = self.sqlite_db.get_cached_network_opinion("ip", ip_address)
+            if abs(score - cached_score) < 0.1:
                 data_already_reported = False
         except KeyError:
             data_already_reported = False
@@ -210,7 +200,7 @@ class Trust(Module, multiprocessing.Process):
             # TODO: blame should support score and confidence as well
             self.send_to_go("BLAME %s" % ip_address)
 
-    def get_ip_info(self, ip_address):
+    def get_ip_info_from_slips(self, ip_address):
         # poll new info from redis
         ip_info = __database__.getIPData(ip_address)
 
@@ -218,9 +208,6 @@ class Trust(Module, multiprocessing.Process):
         # check that both values were provided
         if slips_score is None:
             return None, None
-
-        # update data in cache
-        self.slips_opinion[ip_address] = (time.time(), slips_score, slips_confidence)
 
         return slips_score, slips_confidence
 
@@ -253,11 +240,10 @@ class Trust(Module, multiprocessing.Process):
             return
 
         # if data is in cache and is recent enough, it is returned from cache
-        # TODO: switch to cache inside db
         try:
-            timestamp, score, confidence, _ = self.last_ip_update[ip_address]
+            score, confidence, network_score, timestamp = self.sqlite_db.get_cached_network_opinion("ip", ip_address)
             if time.time() - timestamp < cache_age:
-                self.send_to_slips(ip_address + " " + score + " " + confidence)
+                self.send_to_slips(ip_address + " " + score + " " + confidence + " " + network_score)
                 return
         except KeyError:
             pass

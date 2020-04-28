@@ -77,10 +77,19 @@ class TrustDB:
                               "VALUES (?, ?, ?, ?, ?, ?)", reports)
         pass
 
-    def update_network_opinion(self, key_type, ipaddress, score, confidence, network_score):
+    def update_cached_network_opinion(self, key_type, ipaddress, score, confidence, network_score):
         self.conn.execute("REPLACE INTO"
                           " opinion_cache (key_type, reported_key, score, confidence, network_score, update_time)"
                           "VALUES (?, ?, ?, ?, ?, strftime('%s','now'));", (key_type, ipaddress, score, confidence, network_score))
+
+    def get_cached_network_opinion(self, key_type, ipaddress):
+        cache_cur = self.conn.execute("SELECT score, confidence, network_score, update_time "
+                          "FROM opinion_cache "
+                          "WHERE key_type = ? "
+                          "  AND reported_key = ? "
+                          "ORDER BY update_time LIMIT 1;", (key_type, ipaddress))
+
+        return cache_cur.fetchone()
 
     def get_opinion_on_ip(self, ipaddress):
         reports_cur = self.conn.execute("SELECT reports.reporter_peerid AS reporter_peerid,"

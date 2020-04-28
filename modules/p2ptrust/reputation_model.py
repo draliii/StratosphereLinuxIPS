@@ -25,7 +25,7 @@ class ReputationModel:
         reports_on_ip = self.trustdb.get_opinion_on_ip(ipaddr)
         network_score, combined_score, combined_confidence = self.assemble_peer_opinion(reports_on_ip)
 
-        self.trustdb.update_network_opinion("ip", ipaddr, combined_score, combined_confidence, network_score)
+        self.trustdb.update_cached_network_opinion("ip", ipaddr, combined_score, combined_confidence, network_score)
         return combined_score, combined_confidence, network_score
 
     def compute_peer_reputation(self, trust, score, confidence):
