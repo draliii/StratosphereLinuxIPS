@@ -1,4 +1,5 @@
 # Must imports
+import ipaddress
 import multiprocessing
 import platform
 
@@ -19,6 +20,16 @@ def read_data_from_ip_info(ip_info: dict) -> (float, float):
         return float(score), float(confidence)
     except KeyError:
         return None, None
+
+
+def validate_ip_address(ip):
+    try:
+        # this fails on invalid ip address
+        ipaddress.ip_address(ip)
+    except:
+        return False
+
+    return True
 
 
 class Trust(Module, multiprocessing.Process):
@@ -44,10 +55,9 @@ class Trust(Module, multiprocessing.Process):
 
         print("Starting p2ptrust")
 
-        self.c1 = pubsub = __database__.r.pubsub()
-        pubsub.subscribe('ip_info_change')
-        # when the channels are oficially added (needs discussing with other slips developers),
-        # self.c1 = __database__.subscribe('p2p_gopy')
+        self.pubsub = __database__.r.pubsub()
+        self.pubsub.subscribe('ip_info_change')
+        self.pubsub.subscribe('p2p_data_requests')
 
         # Set the timeout based on the platform. This is because the pyredis lib does not have officially recognized the
         # timeout=None as it works in only macos and timeout=-1 as it only works in linux
@@ -96,7 +106,7 @@ class Trust(Module, multiprocessing.Process):
         try:
             # Main loop function
             while True:
-                message = self.c1.get_message(timeout=None)
+                message = self.pubsub.get_message(timeout=None)
                 # skip control messages, such as subscribe notifications
                 if message['type'] != "message":
                     continue
@@ -109,12 +119,14 @@ class Trust(Module, multiprocessing.Process):
                 if data == 'stop_process':
                     print("Received stop signal from slips, stopping")
                     self.sqlite_db.__del__()
-                    # TODO: kill go process as well
                     self.go_listener_process.kill()
                     return True
 
                 if message["channel"] == "ip_info_change":
                     self.handle_update(message["data"])
+
+                if message["channel"] == "p2p_data_requests":
+                    self.handle_data_request(message["data"])
 
         except KeyboardInterrupt:
             return True
@@ -169,30 +181,6 @@ class Trust(Module, multiprocessing.Process):
             # TODO: blame should support score and confidence as well
             self.publish("BLAME %s" % ip_address)
 
-    def handle_slips_ask(self, ip):
-        # is in cache?
-        # return from cache
-
-        # otherwise
-
-        # TODO: this is not verified to be an IP address, check that go does that
-        self.publish("ASK %s" % ip)
-
-        # go will send a reply in no longer than 10s (or whatever the timeout there is set to). The reply will be
-        # processed by this module and database will be updated accordingly
-
-    def handle_go_ask(self, parameters):
-        # TODO: return value from redis directly
-        pass
-
-    def handle_go_data(self, parameters):
-        # TODO: parse the json
-        # process all peer responses
-        # find outliers and adjust peer scores?
-        # update data for ip in the cache
-        # this is the place where some trust decisions can again be made
-        pass
-
     def get_ip_info(self, ip_address):
         # poll new info from redis
         ip_info = __database__.getIPData(ip_address)
@@ -206,3 +194,42 @@ class Trust(Module, multiprocessing.Process):
         self.slips_opinion[ip_address] = (time.time(), slips_score, slips_confidence)
 
         return slips_score, slips_confidence
+
+    def handle_data_request(self, message_data):
+        """
+        Read data request from Slips and collect the data.
+
+        Three `arguments` are expected in the redis channel:
+            ip_address: str,
+            cache_age: int [seconds]
+        The return value is sent to the redis channel `p2p_data_response` in the format:
+            ip_address: str,
+            timestamp: int [time of assembling the response],
+            network_opinion: float,
+            network_confidence: float,
+            network_competence: float,
+            network_trust: float
+
+        This method will check if any data not older than `cache_age` is saved in cache. If yes, this data is returned.
+        If not, the database is checked. An ASK query is sent to the network and responses are collected and sent to the
+        `p2p_data_response` channel.
+
+        :param message_data: The data received from the redis channel `p2p_data_response`
+        :return: None, the result is sent via a channel
+        """
+
+        ip_address, time_since_cached = message_data.split(" ", 1)
+
+
+
+        # is in cache?
+        # return from cache
+
+        # otherwise
+
+        # TODO: this is not verified to be an IP address, check that go does that
+        self.publish("ASK %s" % ip)
+
+        # go will send a reply in no longer than 10s (or whatever the timeout there is set to). The reply will be
+        # processed by this module and database will be updated accordingly
+        pass
