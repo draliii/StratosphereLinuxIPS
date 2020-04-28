@@ -8,7 +8,7 @@ import time
 
 from modules.p2ptrust.trustdb import TrustDB
 from modules.p2ptrust.go_listener import GoListener
-from p2ptrust.reputation_model import ReputationModel
+from modules.p2ptrust.reputation_model import ReputationModel
 from slips.common.abstracts import Module
 from slips.core.database import __database__
 from modules.p2ptrust.go_listener import validate_ip_address
@@ -139,9 +139,11 @@ class Trust(Module, multiprocessing.Process):
 
                 if message["channel"] == "ip_info_change":
                     self.handle_update(message["data"])
+                    continue
 
                 if message["channel"] == "p2p_data_request":
                     self.handle_data_request(message["data"])
+                    continue
 
         except KeyboardInterrupt:
             return True
@@ -183,7 +185,9 @@ class Trust(Module, multiprocessing.Process):
         data_already_reported = True
         try:
             cached_score, cached_confidence, network_score, timestamp = self.sqlite_db.get_cached_network_opinion("ip", ip_address)
-            if abs(score - cached_score) < 0.1:
+            if cached_score is None:
+                data_already_reported = False
+            elif abs(score - cached_score) < 0.1:
                 data_already_reported = False
         except KeyError:
             data_already_reported = False

@@ -89,7 +89,10 @@ class TrustDB:
                           "  AND reported_key = ? "
                           "ORDER BY update_time LIMIT 1;", (key_type, ipaddress))
 
-        return cache_cur.fetchone()
+        result = cache_cur.fetchone()
+        if result is None:
+            result = None, None, None, None
+        return result
 
     def get_opinion_on_ip(self, ipaddress):
         reports_cur = self.conn.execute("SELECT reports.reporter_peerid AS reporter_peerid,"

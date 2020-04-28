@@ -5,7 +5,7 @@ import random
 
 from modules.p2ptrust.p2ptrust import Trust
 from slips.core.database import Database
-
+import modules.p2ptrust.json_data as json_data
 
 def init_tests():
     from slips.core.database import __database__
@@ -33,17 +33,29 @@ def set_ip_data(database: Database, ip: str, data: dict):
     database.setInfoForIPs(ip, data)
 
 
-def test_slips_data():
+def test_slips_integration():
     module_process, database = init_tests()
-    set_ip_data(database, "1.2.3.4", {"score": 0.3, "confidence": 1})
 
+    # add some data to slips
+    set_ip_data(database, "1.2.3.4", {"score": 0.3, "confidence": 1})
+    set_ip_data(database, "1.2.3.6", {"score": 0.7, "confidence": 0.7})
+    time.sleep(500)
+    
+    # get some data from the network
+    # {"key_type": "ip", "key": "1.2.3.40", "evaluation_type": "score_confidence", "evaluation": { "score": 0.9, "confidence": 0.6 }}
+    # {"key_type": "ip", "key": "1.2.3.5", "evaluation_type": "score_confidence", "evaluation": { "score": 0.9, "confidence": 0.7 }}
+    data = json_data.two_correct
+    database.publish("p2p_gopy", "GO_DATA %s" % data)
+    time.sleep(5)
+
+    database.publish("p2p_data_request", "1.2.3.5")
+    time.sleep(5)
 
 def test_inputs():
-    import modules.p2ptrust.json_data as data
 
     module_process, __database__ = init_tests()
 
-    for test_case_name, test_case in data.__dict__.items():
+    for test_case_name, test_case in json_data.__dict__.items():
         if test_case_name.startswith("_"):
             continue
         else:
@@ -51,7 +63,7 @@ def test_inputs():
             print("#########################")
             print("Running test case:", test_case_name)
             print("-------------------------")
-            __database__.send_to_go("p2p_gopy", "go_data " + test_case)
+            __database__.publish("p2p_gopy", "go_data " + test_case)
             # the sleep is not needed, but it makes the log more readable
             time.sleep(1)
 
@@ -108,33 +120,33 @@ def slips_listener_test():
     time.sleep(1)
 
     # invalid command
-    __database__.send_to_go("p2p_gopy", "foooooooooo")
-    __database__.send_to_go("p2p_gopy", "")
+    __database__.publish("p2p_gopy", "foooooooooo")
+    __database__.publish("p2p_gopy", "")
 
     # invalid command with parameters
-    __database__.send_to_go("p2p_gopy", "foooooooooo bar 3")
+    __database__.publish("p2p_gopy", "foooooooooo bar 3")
 
     # valid command, no parameters
-    __database__.send_to_go("p2p_gopy", "UPDATE")
+    __database__.publish("p2p_gopy", "UPDATE")
 
     # valid update
-    __database__.send_to_go("p2p_gopy", "UPDATE ipaddress 1 1")
-    __database__.send_to_go("p2p_gopy", "UPDATE ipaddress 1.999999999999999 3")
+    __database__.publish("p2p_gopy", "UPDATE ipaddress 1 1")
+    __database__.publish("p2p_gopy", "UPDATE ipaddress 1.999999999999999 3")
 
     # update with unparsable parameters
-    __database__.send_to_go("p2p_gopy", "UPDATE ipaddress 1 five")
-    __database__.send_to_go("p2p_gopy", "UPDATE ipaddress 3")
+    __database__.publish("p2p_gopy", "UPDATE ipaddress 1 five")
+    __database__.publish("p2p_gopy", "UPDATE ipaddress 3")
 
     data = make_data()
-    __database__.send_to_go("p2p_gopy", "GO_DATA %s" % data)
+    __database__.publish("p2p_gopy", "GO_DATA %s" % data)
 
     # stop instruction
-    __database__.send_to_go("p2p_gopy", "stop_process")
+    __database__.publish("p2p_gopy", "stop_process")
 
 
 if __name__ == "__main__":
     t = time.time()
     # test_inputs()
-    test_slips_data()
+    test_slips_integration()
 
     print(time.time() - t)
