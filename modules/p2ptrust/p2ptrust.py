@@ -241,19 +241,31 @@ class Trust(Module, multiprocessing.Process):
         :return: None, the result is sent via a channel
         """
 
-        ip_address, time_since_cached = validate_slips_data(message_data)
+        ip_address, cache_age = validate_slips_data(message_data)
         if ip_address is None:
             # TODO: send error notice to the channel?
             return
 
-        # is in cache?
-        # return from cache
+        # if data is in cache and is recent enough, it is returned from cache
+        try:
+            timestamp, score, confidence, _ = self.last_ip_update[ip_address]
+            if time.time() - timestamp < cache_age:
+                # TODO:
+                result = score, confidence
+                return
+        except KeyError:
+            pass
 
-        # otherwise
-
-        # TODO: this is not verified to be an IP address, check that go does that
-        self.publish("ASK %s" % ip)
+        # TODO: in some cases, it is not necessary to wait, specify that and implement it
+        #       I do not remember writing this comment. I have no idea in which cases there is no need to wait? Maybe
+        #       when everybody responds asap?
+        self.publish("ASK %s" % ip_address)
 
         # go will send a reply in no longer than 10s (or whatever the timeout there is set to). The reply will be
-        # processed by this module and database will be updated accordingly
+        # processed by an independent process in this module and database will be updated accordingly
+
+        # TODO: get data from trustdb
+        # TODO: return the result
+        # this should contain recent opinions - on each report, the "network opinion" should be recalculated, and saved
+        # ip: (timestamp, score, confidence, network trust data..,?)
         pass
