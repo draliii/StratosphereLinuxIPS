@@ -211,3 +211,11 @@ wrong_message_confidence_out_of_range = '[{' \
               '    "report_time": 154900000,' \
               '    "message": "' + __b64m.decode() + '"' \
               '  }]'
+
+__message = b'{"message_type": "request", "key_type": "ip", "key": "1.2.3.4", "evaluation_type": "score_confidence"}'
+__b64m = __b64.b64encode(__message)
+ok_request = '[{' \
+              '    "reporter": "abcsakughroiauqrghaui",' \
+              '    "report_time": 154900000,' \
+              '    "message": "' + __b64m.decode() + '"' \
+              '  }]'

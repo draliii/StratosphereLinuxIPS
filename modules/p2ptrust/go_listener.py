@@ -77,26 +77,13 @@ class GoListener(multiprocessing.Process):
                 print("Invalid command: ", data)
                 continue
 
-            if command == "go_ask":
-                self.handle_go_ask(parameters)
-                continue
-
             if command == "go_data":
-                self.handle_go_data(parameters)
+                self.process_go_data(parameters)
                 continue
 
             print("Invalid command: ", data)
 
-    def handle_go_ask(self, parameters):
-        # TODO: parse IP from parameters
-        # TODO: get data from slips
-        # TODO: get data from trustdb
-        # TODO: send data to the peer that asked
-        ip = "1.2.3.4"
-        ip_data = self.rdb.getIPData(ip)
-        self.send_message_to_go(ip_data)
-
-    def handle_go_data(self, parameters):
+    def process_go_data(self, parameters):
         """Process the report received from remote peer
 
         The report is expected to have the format explained in go_report_format.md. If the message is valid, it is
@@ -178,7 +165,53 @@ class GoListener(multiprocessing.Process):
             return
 
     def process_message_request(self, reporter, report_time, data):
-        pass
+        # validate keys in message
+        try:
+            key = data["key"]
+            key_type = data["key_type"]
+            evaluation_type = data["evaluation_type"]
+        except KeyError:
+            print("Correct keys are missing in the message")
+            # TODO: lower reputation
+            return
+
+        # validate keytype and key
+        if key_type != "ip":
+            print("Module can't process given key type")
+            return
+
+        if not self.key_type_processors[key_type](key):
+            print("Provided key isn't a valid value for it's type")
+            # TODO: lower reputation
+            return
+
+        # validate evaluation type
+        if evaluation_type != "score_confidence":
+            print("Module can't process given evaluation type")
+            return
+
+        score, confidence = self.get_ip_info_from_slips(key)
+        if score is not None:
+            self.send_evaluation_to_go(key, score, confidence, reporter)
+
+    def get_ip_info_from_slips(self, ip_address):
+        # poll new info from redis
+        ip_info = self.rdb.getIPData(ip_address)
+
+        slips_score, slips_confidence = self.read_data_from_ip_info(ip_info)
+        # check that both values were provided
+        if slips_score is None:
+            return None, None
+
+        return slips_score, slips_confidence
+
+    def read_data_from_ip_info(self, ip_info: dict) -> (float, float):
+        try:
+            score = ip_info["score"]
+            confidence = ip_info["confidence"]
+            return float(score), float(confidence)
+        except KeyError:
+            return None, None
 
     def process_message_report(self, reporter, report_time, data):
         # validate keys in message
@@ -244,6 +277,27 @@ class GoListener(multiprocessing.Process):
             reporter, report_time, key, key_type, score, confidence)
         print(result)
         pass
+
+    def send_evaluation_to_go(self, ip, score, confidence, recipient):
+        message_raw = {}
+        message_raw["message_type"] = "report"
+        message_raw["key_type"] = "ip"
+        message_raw["key"] = ip
+        message_raw["evaluation_type"] = "score_confidence"
+        message_raw["evaluation"] = {}
+        message_raw["evaluation"]["score"] = score
+        message_raw["evaluation"]["confidence"] = confidence
+
+        message_json = json.dumps(message_raw)
+        message_b64 = base64.b64encode(bytes(message_json, "ascii")).decode()
+
+        self.send2go(message_b64, recipient)
+
+    def send2go(self, message, recipient):
+        data_raw = {"message": message, "recipient": recipient}
+        data_json = json.dumps(data_raw)
+        print("[publish trust -> go]", data_json)
+        self.rdb.publish("p2p_pygo", data_json)
 
 
 def validate_ip_address(ip):
