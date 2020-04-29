@@ -7,30 +7,11 @@ import platform
 import time
 
 from modules.p2ptrust.trustdb import TrustDB
+from slips.core.database import __database__
 from modules.p2ptrust.go_listener import GoListener
 from modules.p2ptrust.reputation_model import ReputationModel
+from modules.p2ptrust.utils import read_data_from_ip_info, get_ip_info_from_slips, validate_ip_address
 from slips.common.abstracts import Module
-from slips.core.database import __database__
-from modules.p2ptrust.go_listener import validate_ip_address
-
-
-def read_data_from_ip_info(ip_info: dict) -> (float, float):
-    try:
-        score = ip_info["score"]
-        confidence = ip_info["confidence"]
-        return float(score), float(confidence)
-    except KeyError:
-        return None, None
-
-
-def validate_ip_address(ip):
-    try:
-        # this fails on invalid ip address
-        ipaddress.ip_address(ip)
-    except:
-        return False
-
-    return True
 
 
 def validate_slips_data(message_data: str) -> (str, int):
@@ -176,7 +157,7 @@ class Trust(Module, multiprocessing.Process):
         if not validate_ip_address(ip_address):
             return
 
-        score, confidence = self.get_ip_info_from_slips(ip_address)
+        score, confidence = get_ip_info_from_slips(__database__, ip_address)
         if score is None:
             return
 
@@ -204,16 +185,6 @@ class Trust(Module, multiprocessing.Process):
             # TODO: blame should support score and confidence as well
             self.send_to_go("BLAME %s" % ip_address)
 
-    def get_ip_info_from_slips(self, ip_address):
-        # poll new info from redis
-        ip_info = __database__.getIPData(ip_address)
-
-        slips_score, slips_confidence = read_data_from_ip_info(ip_info)
-        # check that both values were provided
-        if slips_score is None:
-            return None, None
-
-        return slips_score, slips_confidence
 
     def handle_data_request(self, message_data):
         """

@@ -1,11 +1,9 @@
 import configparser
-
 import time
-import random
-
 from modules.p2ptrust.p2ptrust import Trust
 from slips.core.database import Database
 import modules.p2ptrust.json_data as json_data
+
 
 def init_tests():
     from slips.core.database import __database__
@@ -59,6 +57,7 @@ def test_slips_integration():
 
     # shutdown
     database.publish("p2p_data_request", "stop_process")
+
 
 def test_inputs():
 
