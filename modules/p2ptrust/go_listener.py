@@ -156,13 +156,38 @@ class GoListener(multiprocessing.Process):
 
         print("peer json ok")
 
+        try:
+            message_type = data["message_type"]
+        except KeyError:
+            # TODO: lower reputation
+            print("Peer didn't specify message type")
+            return
+
+        if message_type == "report":
+            self.process_message_report(reporter, report_time, data)
+
+        elif message_type == "request":
+            self.process_message_request(reporter, report_time, data)
+
+        elif message_type == "blame":
+            print("blame is not implemented yet")
+
+        else:
+            # TODO: lower reputation
+            print("Peer sent unknown message type")
+            return
+
+    def process_message_request(self, reporter, report_time, data):
+        pass
+
+    def process_message_report(self, reporter, report_time, data):
         # validate keys in message
         try:
             key = data["key"]
             key_type = data["key_type"]
             evaluation_type = data["evaluation_type"]
             evaluation = data["evaluation"]
-        except:
+        except KeyError:
             print("Correct keys are missing in the message")
             # TODO: lower reputation
             return

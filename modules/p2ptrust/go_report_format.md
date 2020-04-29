@@ -1,4 +1,59 @@
+# Communication python -> go -> go -> python
+
+## Outer message format (added by the library, not sent between peers)
+Communication happens between the python layers. In the go layer, data is not unpacked. The received message is simply
+forwarded, with some additional information: the sender's peerid and the time the report was received (system time, 
+unix)
+
+The message is encoded as a base64 string, the go layer doesn't process the data at all (more on that later).
+To simplify implementation, the message should always be an array (in this case, with only one element).
+
+```json
+[
+  {
+    "reporter": "abcsakughroiauqrghaui",
+    "report_time": 154900000,
+    "message": "ewogICAgImtleV90eXBlIjogImlwIiwKICAgICJrZXkiOiAiMS4yLjMuNDAiLAogICAgImV........jYKfQ=="
+  }
+]
+```
+
+## Message format between peers
+
+The message is a json object, and it must contain the field `message_type`. The acceptable message types are `report`,
+`request` and `blame`. The json object is encoded to base64 for transfer.
+
+### Type request
+
+```json
+{
+  "message_type": "request",
+  "key_type": "ip",
+  "key": "1.2.3.40",
+  "evaluation_type": "score_confidence"
+}
+```
+
+### Type report
+
+```json
+{
+  "message_type": "report",
+  "key_type": "ip",
+  "key": "1.2.3.40",
+  "evaluation_type": "score_confidence",
+  "evaluation": {
+    "score": 0.9,
+    "confidence": 0.6
+  }
+}
+```
+
+
 # Report format, forwarding reports
+
+The following text is the original specs, which is wrong now. It only describes message type report, and I don't feel
+like rewriting it now.
 
 ## Reports sent between nodes
 Nodes send each other reports in base64, which contains a json object. The report always contains the key type 
