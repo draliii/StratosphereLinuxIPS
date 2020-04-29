@@ -3,28 +3,31 @@
 
 
 # one correct report (OK)
-# message: {"key_type": "ip", "key": "1.2.3.40", "evaluation_type": "score_confidence",
+# message: {"message_type": "report", "key_type": "ip", "key": "1.2.3.40", "evaluation_type": "score_confidence",
 #           "evaluation": { "score": 0.9, "confidence": 0.6 }}
 import base64 as __b64
 
 one_correct = '[{' \
               '    "reporter": "abcsakughroiauqrghaui",' \
               '    "report_time": 154900000,' \
-              '    "message": "eyJrZXlfdHlwZSI6ICJpcCIsICJrZXkiOiAiMS4yLjMuNDAiLCAiZXZhbHVhdGlvbl90eXBlIjogInNjb3JlX2' \
-              'NvbmZpZGVuY2UiLCAiZXZhbHVhdGlvbiI6IHsgInNjb3JlIjogMC45LCAiY29uZmlkZW5jZSI6IDAuNiB9fQ=="' \
+              '    "message": "eyJtZXNzYWdlX3R5cGUiOiAicmVwb3J0IiwgImtleV90eXBlIjogImlwIiwgImtleSI6ICIxLjIuMy40MCIsIC' \
+              'JldmFsdWF0aW9uX3R5cGUiOiAic2NvcmVfY29uZmlkZW5jZSIsICJldmFsdWF0aW9uIjogeyAic2NvcmUiOiAwLjksICJjb25maWRl' \
+              'bmNlIjogMC42IH19"' \
               '  }]'
 
 # multiple correct reports (OK)
 two_correct = '[{' \
               '    "reporter": "abcsakughroiauqrghaui",' \
               '    "report_time": 154900000,' \
-              '    "message": "eyJrZXlfdHlwZSI6ICJpcCIsICJrZXkiOiAiMS4yLjMuNDAiLCAiZXZhbHVhdGlvbl90eXBlIjogInNjb3JlX2' \
-              'NvbmZpZGVuY2UiLCAiZXZhbHVhdGlvbiI6IHsgInNjb3JlIjogMC45LCAiY29uZmlkZW5jZSI6IDAuNiB9fQ=="' \
+              '    "message": "eyJtZXNzYWdlX3R5cGUiOiAicmVwb3J0IiwgImtleV90eXBlIjogImlwIiwgImtleSI6ICIxLjIuMy40MCIsIC' \
+              'JldmFsdWF0aW9uX3R5cGUiOiAic2NvcmVfY29uZmlkZW5jZSIsICJldmFsdWF0aW9uIjogeyAic2NvcmUiOiAwLjksICJjb25maWRl' \
+              'bmNlIjogMC42IH19"' \
               '  },{' \
               '    "reporter": "anotherreporterspeerid",' \
               '    "report_time": 154800000,' \
-              '    "message": "eyJrZXlfdHlwZSI6ICJpcCIsICJrZXkiOiAiMS4yLjMuNSIsICJldmFsdWF0aW9uX3R5cGUiOiAic2NvcmVfY2' \
-              '9uZmlkZW5jZSIsICJldmFsdWF0aW9uIjogeyAic2NvcmUiOiAwLjksICJjb25maWRlbmNlIjogMC43IH19"' \
+              '    "message": "eyJtZXNzYWdlX3R5cGUiOiAicmVwb3J0IiwgImtleV90eXBlIjogImlwIiwgImtleSI6ICIxLjIuMy40MCIsIC' \
+              'JldmFsdWF0aW9uX3R5cGUiOiAic2NvcmVfY29uZmlkZW5jZSIsICJldmFsdWF0aW9uIjogeyAic2NvcmUiOiAwLjksICJjb25maWRl' \
+              'bmNlIjogMC42IH19"' \
               '  }]'
 
 # invalid json (fail on parsing)
@@ -92,8 +95,8 @@ wrong_time_future = '[{' \
               '  }]'
 
 
-# message has unknown type
-__message = b'{"key_type": "ip", "key": "1.2.3.40", "evaluation_type": "unknown type", "evaluation": ["eval1", "eval2"]}'
+# message has unknown evaluation type
+__message = b'{"message_type": "report", "key_type": "ip", "key": "1.2.3.40", "evaluation_type": "unknown type", "evaluation": ["eval1", "eval2"]}'
 __b64m = __b64.b64encode(__message)
 wrong_message_type = '[{' \
               '    "reporter": "abcsakughroiauqrghaui",' \
@@ -102,7 +105,7 @@ wrong_message_type = '[{' \
               '  }]'
 
 # message doesn't have valid fields (fail in message interpretation)
-__message = b'{"key_type": "you don\'t know this key type, sucker", "key": "1.2.3.40", "evaluation_type": "score_confidence", "evaluation": { "score": 0.9, "confidence": 0.6 }}'
+__message = b'{"message_type": "report", "key_type": "you don\'t know this key type, sucker", "key": "1.2.3.40", "evaluation_type": "score_confidence", "evaluation": { "score": 0.9, "confidence": 0.6 }}'
 __b64m = __b64.b64encode(__message)
 wrong_message_key_type = '[{' \
               '    "reporter": "abcsakughroiauqrghaui",' \
@@ -126,7 +129,7 @@ wrong_message_json = '[{' \
               '    "message": "' + __b64m.decode() + '"' \
               '  }]'
 
-__message = b'{"key_type": "ip", "key": "1.2.3.40", "evaluation_type": "score_confidence", "evaluation": ["eval1", "eval2"]}'
+__message = b'{"message_type": "report", "key_type": "ip", "key": "1.2.3.40", "evaluation_type": "score_confidence", "evaluation": ["eval1", "eval2"]}'
 __b64m = __b64.b64encode(__message)
 wrong_message_eval_structure = '[{' \
               '    "reporter": "abcsakughroiauqrghaui",' \
@@ -135,7 +138,7 @@ wrong_message_eval_structure = '[{' \
               '  }]'
 
 # v1 fields have wrong type (fail in message interpretation)
-__message = b'{"key_type": "ip", "evaluation_type": "score_confidence", "evaluation":  { "score": 0.9, "confidence": 0.6 }}'
+__message = b'{"message_type": "report", "key_type": "ip", "evaluation_type": "score_confidence", "evaluation":  { "score": 0.9, "confidence": 0.6 }}'
 __b64m = __b64.b64encode(__message)
 wrong_message_no_key = '[{' \
               '    "reporter": "abcsakughroiauqrghaui",' \
@@ -143,7 +146,7 @@ wrong_message_no_key = '[{' \
               '    "message": "' + __b64m.decode() + '"' \
               '  }]'
 
-__message = b'{"key_type": "ip", "key": "1.2.3.40", "surprise key": 42, "evaluation_type": "score_confidence", "evaluation":  { "score": 0.9, "confidence": 0.6 }}'
+__message = b'{"message_type": "report", "key_type": "ip", "key": "1.2.3.40", "surprise key": 42, "evaluation_type": "score_confidence", "evaluation":  { "score": 0.9, "confidence": 0.6 }}'
 __b64m = __b64.b64encode(__message)
 wrong_message_too_many_keys = '[{' \
               '    "reporter": "abcsakughroiauqrghaui",' \
@@ -151,7 +154,7 @@ wrong_message_too_many_keys = '[{' \
               '    "message": "' + __b64m.decode() + '"' \
               '  }]'
 
-__message = b'{"key_type": "ip", "key": "2001:0db8:0000:0000:0000:ff00:0042:8329", "evaluation_type": "score_confidence", "evaluation":  { "score": 0.9, "confidence": 0.6 }}'
+__message = b'{"message_type": "report", "key_type": "ip", "key": "2001:0db8:0000:0000:0000:ff00:0042:8329", "evaluation_type": "score_confidence", "evaluation":  { "score": 0.9, "confidence": 0.6 }}'
 __b64m = __b64.b64encode(__message)
 test_message_ipv6 = '[{' \
               '    "reporter": "abcsakughroiauqrghaui",' \
@@ -159,7 +162,7 @@ test_message_ipv6 = '[{' \
               '    "message": "' + __b64m.decode() + '"' \
               '  }]'
 
-__message = b'{"key_type": "ip", "key": "1.2.3.4", "evaluation_type": "score_confidence", "evaluation":  { "score": "zero", "confidence": 0.6 }}'
+__message = b'{"message_type": "report", "key_type": "ip", "key": "1.2.3.4", "evaluation_type": "score_confidence", "evaluation":  { "score": "zero", "confidence": 0.6 }}'
 __b64m = __b64.b64encode(__message)
 wrong_message_wrong_type_score1 = '[{' \
               '    "reporter": "abcsakughroiauqrghaui",' \
@@ -167,7 +170,7 @@ wrong_message_wrong_type_score1 = '[{' \
               '    "message": "' + __b64m.decode() + '"' \
               '  }]'
 
-__message = b'{"key_type": "ip", "key": "1.2.3.4", "evaluation_type": "score_confidence", "evaluation":  { "score": [], "confidence": 0.6 }}'
+__message = b'{"message_type": "report", "key_type": "ip", "key": "1.2.3.4", "evaluation_type": "score_confidence", "evaluation":  { "score": [], "confidence": 0.6 }}'
 __b64m = __b64.b64encode(__message)
 wrong_message_wrong_type_score2 = '[{' \
               '    "reporter": "abcsakughroiauqrghaui",' \
@@ -175,7 +178,7 @@ wrong_message_wrong_type_score2 = '[{' \
               '    "message": "' + __b64m.decode() + '"' \
               '  }]'
 
-__message = b'{"key_type": "ip", "key": "1.2.3.4", "evaluation_type": "score_confidence", "evaluation":  { "score": 0.9, "confidence": {} }}'
+__message = b'{"message_type": "report", "key_type": "ip", "key": "1.2.3.4", "evaluation_type": "score_confidence", "evaluation":  { "score": 0.9, "confidence": {} }}'
 __b64m = __b64.b64encode(__message)
 wrong_message_wrong_type_confidence = '[{' \
               '    "reporter": "abcsakughroiauqrghaui",' \
@@ -184,7 +187,7 @@ wrong_message_wrong_type_confidence = '[{' \
               '  }]'
 
 # reported IP address is not an IP address
-__message = b'{"key_type": "ip", "key": "This is the IP address you are looking for", "evaluation_type": "score_confidence", "evaluation":  { "score": 0.9, "confidence": 0.6 }}'
+__message = b'{"message_type": "report", "key_type": "ip", "key": "This is the IP address you are looking for", "evaluation_type": "score_confidence", "evaluation":  { "score": 0.9, "confidence": 0.6 }}'
 __b64m = __b64.b64encode(__message)
 wrong_message_wrong_type_ip = '[{' \
               '    "reporter": "abcsakughroiauqrghaui",' \
@@ -193,7 +196,7 @@ wrong_message_wrong_type_ip = '[{' \
               '  }]'
 
 # reported score / confidence are out of the interval <0, 1>
-__message = b'{"key_type": "ip", "key": "1.2.3.4", "evaluation_type": "score_confidence", "evaluation":  { "score": 1.00001, "confidence": 0.6 }}'
+__message = b'{"message_type": "report", "key_type": "ip", "key": "1.2.3.4", "evaluation_type": "score_confidence", "evaluation":  { "score": 1.00001, "confidence": 0.6 }}'
 __b64m = __b64.b64encode(__message)
 wrong_message_score_out_of_range = '[{' \
               '    "reporter": "abcsakughroiauqrghaui",' \
@@ -201,7 +204,7 @@ wrong_message_score_out_of_range = '[{' \
               '    "message": "' + __b64m.decode() + '"' \
               '  }]'
 
-__message = b'{"key_type": "ip", "key": "1.2.3.4", "evaluation_type": "score_confidence", "evaluation":  { "score": 0.9, "confidence": -3 }}'
+__message = b'{"message_type": "report", "key_type": "ip", "key": "1.2.3.4", "evaluation_type": "score_confidence", "evaluation":  { "score": 0.9, "confidence": -3 }}'
 __b64m = __b64.b64encode(__message)
 wrong_message_confidence_out_of_range = '[{' \
               '    "reporter": "abcsakughroiauqrghaui",' \

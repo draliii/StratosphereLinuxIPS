@@ -148,7 +148,7 @@ def slips_listener_test():
 
 if __name__ == "__main__":
     t = time.time()
-    # test_inputs()
-    test_slips_integration()
+    test_inputs()
+    #test_slips_integration()
 
     print(time.time() - t)
