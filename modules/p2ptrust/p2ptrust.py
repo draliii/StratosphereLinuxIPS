@@ -77,7 +77,7 @@ class Trust(Module, multiprocessing.Process):
             # ??
             self.timeout = None
 
-        self.sqlite_db = TrustDB(r"trustdb.db")
+        self.sqlite_db = TrustDB(r"trustdb.db", drop_tables_on_startup=True)
         self.reputation_model = ReputationModel(self.sqlite_db, __database__, self.config)
 
         self.go_listener_process = GoListener(self.sqlite_db, __database__, self.config)

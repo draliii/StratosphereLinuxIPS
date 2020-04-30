@@ -7,6 +7,7 @@ class TrustDB:
         """ create a database connection to a SQLite database """
         self.conn = sqlite3.connect(db_file)
         if drop_tables_on_startup:
+            print("Dropping tables")
             self.delete_tables()
         self.create_tables()
         # self.insert_slips_score("8.8.8.8", 0.0, 0.9)
@@ -54,8 +55,9 @@ class TrustDB:
                           "update_time DATE NOT NULL);")
 
     def delete_tables(self):
+        self.conn.execute("DROP TABLE IF EXISTS opinion_cache;")
         self.conn.execute("DROP TABLE IF EXISTS slips_reputation;")
-        self.conn.execute("DROP TABLE IF EXISTS go_reputation;")
+        self.conn.execute("DROP TABLE IF EXISTS go_trust;")
         self.conn.execute("DROP TABLE IF EXISTS peer_ips;")
         self.conn.execute("DROP TABLE IF EXISTS reports;")
 
@@ -64,6 +66,7 @@ class TrustDB:
         parameters = (ip, score, confidence, timestamp)
         self.conn.execute("INSERT INTO slips_reputation (ipaddress, score, confidence, update_time) "
                           "VALUES (?, ?, ?, ?);", parameters)
+        self.conn.commit()
 
     def insert_go_score(self, peerid: str, trust: float, timestamp=None):
         if timestamp is None:
@@ -71,25 +74,29 @@ class TrustDB:
         parameters = (peerid, trust, timestamp)
         self.conn.execute("INSERT INTO go_trust (peerid, trust, update_time) "
                           "VALUES (?, ?, ?);", parameters)
+        self.conn.commit()
 
     def insert_go_ip_pairing(self, peerid: str, ip: str, timestamp=None):
         if timestamp is None:
             timestamp = datetime.datetime.now()
         parameters = (ip, peerid, timestamp)
         self.conn.execute("INSERT INTO peer_ips (ipaddress, peerid, update_time) "
-                      "VALUES (?, ?, ?);", parameters)
+                          "VALUES (?, ?, ?);", parameters)
+        self.conn.commit()
 
     def insert_new_go_data(self, reports):
         # TODO: validate reports, add timestamps
         self.conn.executemany("INSERT INTO reports "
                               "(reporter_peerid, key_type, reported_key, score, confidence, update_time) "
                               "VALUES (?, ?, ?, ?, ?, ?)", reports)
+        self.conn.commit()
         pass
 
     def update_cached_network_opinion(self, key_type, ipaddress, score, confidence, network_score):
         self.conn.execute("REPLACE INTO"
                           " opinion_cache (key_type, reported_key, score, confidence, network_score, update_time)"
                           "VALUES (?, ?, ?, ?, ?, strftime('%s','now'));", (key_type, ipaddress, score, confidence, network_score))
+        self.conn.commit()
 
     def get_cached_network_opinion(self, key_type, ipaddress):
         cache_cur = self.conn.execute("SELECT score, confidence, network_score, update_time "
