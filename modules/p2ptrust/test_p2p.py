@@ -34,12 +34,20 @@ def set_ip_data(database: Database, ip: str, data: dict):
 def test_slips_integration():
     module_process, database = init_tests()
 
+    # add a new peer abcsakughroiauqrghaui on IP 192.168.0.4
+    module_process.sqlite_db.insert_go_score("abcsakughroiauqrghaui", 1, 0)
+    module_process.sqlite_db.insert_go_ip_pairing("abcsakughroiauqrghaui", "192.168.0.4", 1)
+
+    # add a new peer anotherreporterspeerid on IP 192.168.0.5
+    module_process.sqlite_db.insert_go_score("anotherreporterspeerid", 0.8, 0)
+    module_process.sqlite_db.insert_go_ip_pairing("anotherreporterspeerid", "192.168.0.5", 1)
+
     # slips makes some detections
     set_ip_data(database, "1.2.3.4", {"score": 0.3, "confidence": 1})
     set_ip_data(database, "1.2.3.6", {"score": 0.7, "confidence": 0.7})
     time.sleep(1)
     print()
-    
+
     # network shares some detections
     # {"key_type": "ip", "key": "1.2.3.40", "evaluation_type": "score_confidence", "evaluation": { "score": 0.9, "confidence": 0.6 }}
     # {"key_type": "ip", "key": "1.2.3.5", "evaluation_type": "score_confidence", "evaluation": { "score": 0.9, "confidence": 0.7 }}

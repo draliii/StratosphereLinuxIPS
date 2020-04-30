@@ -3,10 +3,11 @@ import datetime
 
 
 class TrustDB:
-    def __init__(self, db_file):
+    def __init__(self, db_file, drop_tables_on_startup=False):
         """ create a database connection to a SQLite database """
         self.conn = sqlite3.connect(db_file)
-        # self.delete_tables()
+        if drop_tables_on_startup:
+            self.delete_tables()
         self.create_tables()
         # self.insert_slips_score("8.8.8.8", 0.0, 0.9)
         self.get_opinion_on_ip("zzz")
@@ -64,11 +65,19 @@ class TrustDB:
         self.conn.execute("INSERT INTO slips_reputation (ipaddress, score, confidence, update_time) "
                           "VALUES (?, ?, ?, ?);", parameters)
 
-    def insert_go_score(self, ip: str, trust: float):
-        timestamp = datetime.datetime.now()
-        parameters = (ip, trust, timestamp)
+    def insert_go_score(self, peerid: str, trust: float, timestamp=None):
+        if timestamp is None:
+            timestamp = datetime.datetime.now()
+        parameters = (peerid, trust, timestamp)
         self.conn.execute("INSERT INTO go_trust (peerid, trust, update_time) "
                           "VALUES (?, ?, ?);", parameters)
+
+    def insert_go_ip_pairing(self, peerid: str, ip: str, timestamp=None):
+        if timestamp is None:
+            timestamp = datetime.datetime.now()
+        parameters = (ip, peerid, timestamp)
+        self.conn.execute("INSERT INTO peer_ips (ipaddress, peerid, update_time) "
+                      "VALUES (?, ?, ?);", parameters)
 
     def insert_new_go_data(self, reports):
         # TODO: validate reports, add timestamps
@@ -84,10 +93,10 @@ class TrustDB:
 
     def get_cached_network_opinion(self, key_type, ipaddress):
         cache_cur = self.conn.execute("SELECT score, confidence, network_score, update_time "
-                          "FROM opinion_cache "
-                          "WHERE key_type = ? "
-                          "  AND reported_key = ? "
-                          "ORDER BY update_time LIMIT 1;", (key_type, ipaddress))
+                                      "FROM opinion_cache "
+                                      "WHERE key_type = ? "
+                                      "  AND reported_key = ? "
+                                      "ORDER BY update_time LIMIT 1;", (key_type, ipaddress))
 
         result = cache_cur.fetchone()
         if result is None:
