@@ -36,11 +36,13 @@ def test_slips_integration():
 
     # add a new peer abcsakughroiauqrghaui on IP 192.168.0.4
     module_process.sqlite_db.insert_go_score("abcsakughroiauqrghaui", 1, 0)
-    module_process.sqlite_db.insert_go_ip_pairing("abcsakughroiauqrghaui", "192.168.0.4", 1)
+    module_process.sqlite_db.insert_go_ip_pairing("abcsakughroiauqrghaui", "192.168.0.4", 1) #B
+    set_ip_data(database, "192.168.0.4", {"score": 0.1, "confidence": 1})
 
     # add a new peer anotherreporterspeerid on IP 192.168.0.5
     module_process.sqlite_db.insert_go_score("anotherreporterspeerid", 0.8, 0)
-    module_process.sqlite_db.insert_go_ip_pairing("anotherreporterspeerid", "192.168.0.5", 1)
+    module_process.sqlite_db.insert_go_ip_pairing("anotherreporterspeerid", "192.168.0.5", 1) #C
+    set_ip_data(database, "192.168.0.5", {"score": 0.1, "confidence": 1})
 
     # slips makes some detections
     set_ip_data(database, "1.2.3.4", {"score": 0.3, "confidence": 1})
@@ -64,7 +66,7 @@ def test_slips_integration():
     # network asks for data about 1.2.3.4
     data = json_data.ok_request
     database.publish("p2p_gopy", "GO_DATA %s" % data)
-    time.sleep(1)
+    time.sleep(100000)
     print()
 
     # shutdown

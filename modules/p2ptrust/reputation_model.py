@@ -48,6 +48,7 @@ class ReputationModel:
         reporters = []
 
         for peer_report in data:
+            # TODO: the following line crashes
             report_score, report_confidence, reporter_trust, reporter_score, reporter_confidence = peer_report
             reports.append((report_score, report_confidence))
             reporters.append(self.compute_peer_reputation(reporter_trust, reporter_score, reporter_confidence))

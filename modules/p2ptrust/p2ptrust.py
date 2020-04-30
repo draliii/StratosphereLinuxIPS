@@ -159,6 +159,10 @@ class Trust(Module, multiprocessing.Process):
             print("IP doesn't have any score/confidence values in DB")
             return
 
+        # insert data from slips to database
+        # TODO: remove debug timestamps
+        self.sqlite_db.insert_slips_score(ip_address, score, confidence, timestamp=3)
+
         # TODO: discuss - only share score if confidence is high enough?
         # compare slips data with data in go
         data_already_reported = True
@@ -234,6 +238,6 @@ class Trust(Module, multiprocessing.Process):
         if combined_score is None:
             message = "None :("
         else:
-            message = ip_address + " " + combined_score + " " + combined_confidence + " " + network_score
+            message = ip_address + " " + str(combined_score) + " " + str(combined_confidence) + " " + str(network_score)
         self.send_to_slips(message)
         pass

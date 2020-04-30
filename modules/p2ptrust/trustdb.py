@@ -61,8 +61,9 @@ class TrustDB:
         self.conn.execute("DROP TABLE IF EXISTS peer_ips;")
         self.conn.execute("DROP TABLE IF EXISTS reports;")
 
-    def insert_slips_score(self, ip: str, score: float, confidence: float):
-        timestamp = datetime.datetime.now()
+    def insert_slips_score(self, ip: str, score: float, confidence: float, timestamp=None):
+        if timestamp is None:
+            timestamp = datetime.datetime.now()
         parameters = (ip, score, confidence, timestamp)
         self.conn.execute("INSERT INTO slips_reputation (ipaddress, score, confidence, update_time) "
                           "VALUES (?, ?, ?, ?);", parameters)
@@ -174,7 +175,9 @@ class TrustDB:
                 print("No slips reputation data for ", parameters_dict)
                 continue
             _, _, _, _, _, reporter_score, reporter_confidence, reputation_update_time = data
-            reporters_scores.append((report_score, report_confidence, reporter_score, reporter_confidence))
+            # TODO: the code further on expects the reporter trust value, replace the temporary 1
+            # report_score, report_confidence, reporter_trust, reporter_score, reporter_confidence
+            reporters_scores.append((report_score, report_confidence, 1, reporter_score, reporter_confidence))
 
         return reporters_scores
 
