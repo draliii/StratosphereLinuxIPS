@@ -108,8 +108,6 @@ class Trust(Module, multiprocessing.Process):
                     continue
 
                 data = message['data']
-                print("Trust got a message:", data)
-                print(message)
 
                 # listen to slips kill signal and quit
                 if data == 'stop_process':
@@ -119,6 +117,7 @@ class Trust(Module, multiprocessing.Process):
                     return True
 
                 if message["channel"] == "ip_info_change":
+                    print("IP info was updated in slips for ip:", data)
                     self.handle_update(message["data"])
                     continue
 
@@ -155,10 +154,12 @@ class Trust(Module, multiprocessing.Process):
 
         # abort if the IP is not valid
         if not validate_ip_address(ip_address):
+            print("IP validation failed")
             return
 
         score, confidence = get_ip_info_from_slips(__database__, ip_address)
         if score is None:
+            print("IP doesn't have any score/confidence values in DB")
             return
 
         # TODO: discuss - only share score if confidence is high enough?

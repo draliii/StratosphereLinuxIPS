@@ -3,7 +3,8 @@ import binascii
 import json
 import multiprocessing
 
-from modules.p2ptrust.utils import validate_ip_address, validate_go_reports, validate_timestamp, get_ip_info_from_slips
+from modules.p2ptrust.utils import validate_ip_address, validate_go_reports, validate_timestamp, \
+    get_ip_info_from_slips, send_evaluation_to_go
 from slips.core.database import Database as SlipsDatabase
 from modules.p2ptrust.trustdb import TrustDB
 
@@ -172,7 +173,7 @@ class GoListener(multiprocessing.Process):
 
         score, confidence = get_ip_info_from_slips(self.rdb, key)
         if score is not None:
-            self.send_evaluation_to_go(key, score, confidence, reporter)
+            send_evaluation_to_go(self.rdb, key, score, confidence, reporter)
 
     def process_message_report(self, reporter, report_time, data):
         # validate keys in message
@@ -239,26 +240,6 @@ class GoListener(multiprocessing.Process):
         print(result)
         pass
 
-    def send_evaluation_to_go(self, ip, score, confidence, recipient):
-        message_raw = {}
-        message_raw["message_type"] = "report"
-        message_raw["key_type"] = "ip"
-        message_raw["key"] = ip
-        message_raw["evaluation_type"] = "score_confidence"
-        message_raw["evaluation"] = {}
-        message_raw["evaluation"]["score"] = score
-        message_raw["evaluation"]["confidence"] = confidence
-
-        message_json = json.dumps(message_raw)
-        message_b64 = base64.b64encode(bytes(message_json, "ascii")).decode()
-
-        self.send2go(message_b64, recipient)
-
-    def send2go(self, message, recipient):
-        data_raw = {"message": message, "recipient": recipient}
-        data_json = json.dumps(data_raw)
-        print("[publish trust -> go]", data_json)
-        self.rdb.publish("p2p_pygo", data_json)
 
 
 

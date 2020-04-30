@@ -38,6 +38,7 @@ def test_slips_integration():
     set_ip_data(database, "1.2.3.4", {"score": 0.3, "confidence": 1})
     set_ip_data(database, "1.2.3.6", {"score": 0.7, "confidence": 0.7})
     time.sleep(1)
+    print()
     
     # network shares some detections
     # {"key_type": "ip", "key": "1.2.3.40", "evaluation_type": "score_confidence", "evaluation": { "score": 0.9, "confidence": 0.6 }}
@@ -45,18 +46,22 @@ def test_slips_integration():
     data = json_data.two_correct
     database.publish("p2p_gopy", "GO_DATA %s" % data)
     time.sleep(1)
+    print()
 
     # slips asks for data about 1.2.3.5
     database.publish("p2p_data_request", "1.2.3.5 1000")
     time.sleep(1)
+    print()
 
     # network asks for data about 1.2.3.4
     data = json_data.ok_request
     database.publish("p2p_gopy", "GO_DATA %s" % data)
-    time.sleep(10000)
+    time.sleep(1)
+    print()
 
     # shutdown
     database.publish("p2p_data_request", "stop_process")
+    print()
 
 
 def test_inputs():
