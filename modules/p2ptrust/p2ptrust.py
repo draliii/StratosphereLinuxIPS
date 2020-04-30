@@ -10,7 +10,8 @@ from modules.p2ptrust.trustdb import TrustDB
 from slips.core.database import __database__
 from modules.p2ptrust.go_listener import GoListener
 from modules.p2ptrust.reputation_model import ReputationModel
-from modules.p2ptrust.utils import read_data_from_ip_info, get_ip_info_from_slips, validate_ip_address
+from modules.p2ptrust.utils import read_data_from_ip_info, get_ip_info_from_slips, validate_ip_address, \
+    send_evaluation_to_go, send_blame_to_go, send_request_to_go
 from slips.common.abstracts import Module
 
 
@@ -134,10 +135,6 @@ class Trust(Module, multiprocessing.Process):
             self.print(str(inst), 0, 1)
             return True
 
-    def send_to_go(self, message):
-        print("[publish trust -> go]", message)
-        __database__.publish("p2p_pygo", message)
-
     def send_to_slips(self, message):
         print("[publish trust -> slips]", message)
         __database__.publish("p2p_data_request", message)
@@ -178,14 +175,11 @@ class Trust(Module, multiprocessing.Process):
             return
 
         if not data_already_reported:
-            # TODO: actually send the data here
-            self.send_to_go("BROADCAST %s %f %f" % (ip_address, score, confidence))
+            send_evaluation_to_go(__database__, ip_address, score, confidence, "*")
 
         # TODO: discuss - based on what criteria should we start blaming?
         if score > 0.8 and confidence > 0.6:
-            # TODO: blame should support score and confidence as well
-            self.send_to_go("BLAME %s" % ip_address)
-
+            send_blame_to_go(__database__, ip_address, score, confidence)
 
     def handle_data_request(self, message_data):
         """
@@ -227,7 +221,7 @@ class Trust(Module, multiprocessing.Process):
         # TODO: in some cases, it is not necessary to wait, specify that and implement it
         #       I do not remember writing this comment. I have no idea in which cases there is no need to wait? Maybe
         #       when everybody responds asap?
-        self.send_to_go("ASK %s" % ip_address)
+        send_request_to_go(__database__, ip_address)
 
         # go will send a reply in no longer than 10s (or whatever the timeout there is set to). The reply will be
         # processed by an independent process in this module and database will be updated accordingly

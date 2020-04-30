@@ -82,16 +82,50 @@ def read_data_from_ip_info(ip_info: dict) -> (float, float):
 # SEND COMMUNICATION TO GO
 #
 
+def build_go_message(message_type, key_type, key, evaluation_type, evaluation=None):
+    message = {
+        "message_type": message_type,
+        "key_type": key_type,
+        "key": key,
+        "evaluation_type": evaluation_type
+    }
+    if evaluation_type != "request":
+        message["evaluation"] = evaluation
+    return message
+
+
+def build_score_confidence(score, confidence):
+    evaluation = {
+        "score": score,
+        "confidence": confidence
+    }
+    return evaluation
+
 
 def send_evaluation_to_go(rdb, ip, score, confidence, recipient):
-    message_raw = {}
-    message_raw["message_type"] = "report"
-    message_raw["key_type"] = "ip"
-    message_raw["key"] = ip
-    message_raw["evaluation_type"] = "score_confidence"
-    message_raw["evaluation"] = {}
-    message_raw["evaluation"]["score"] = score
-    message_raw["evaluation"]["confidence"] = confidence
+    evaluation_raw = build_score_confidence(score, confidence)
+    message_raw = build_go_message("report", "ip", ip, "score_confidence", evaluation=evaluation_raw)
+
+    message_json = json.dumps(message_raw)
+    message_b64 = base64.b64encode(bytes(message_json, "ascii")).decode()
+
+    send_b64_to_go(rdb, message_b64, recipient)
+
+
+def send_blame_to_go(rdb, ip, score, confidence):
+    recipient = "*"
+    evaluation_raw = build_score_confidence(score, confidence)
+    message_raw = build_go_message("blame", "ip", ip, "score_confidence", evaluation=evaluation_raw)
+
+    message_json = json.dumps(message_raw)
+    message_b64 = base64.b64encode(bytes(message_json, "ascii")).decode()
+
+    send_b64_to_go(rdb, message_b64, recipient)
+
+
+def send_request_to_go(rdb, ip):
+    recipient = "*"
+    message_raw = build_go_message("request", "ip", ip, "score_confidence")
 
     message_json = json.dumps(message_raw)
     message_b64 = base64.b64encode(bytes(message_json, "ascii")).decode()
