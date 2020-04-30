@@ -234,7 +234,7 @@ class GoListener(multiprocessing.Process):
             # TODO: lower reputation
             return
 
-        # TODO: save data to sqlite db
+        self.trustdb.insert_new_go_report(reporter, key_type, key, score, confidence, report_time)
         result = "Data processing ok: reporter {}, report time {}, key {} ({}), score {}, confidence {}".format(
             reporter, report_time, key, key_type, score, confidence)
         print(result)
