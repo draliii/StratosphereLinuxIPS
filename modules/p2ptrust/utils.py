@@ -11,7 +11,7 @@ from slips.core.database import __database__
 #
 
 
-def validate_ip_address(ip):
+def validate_ip_address(ip: str):
     try:
         # this fails on invalid ip address
         ipaddress.ip_address(ip)
@@ -21,7 +21,8 @@ def validate_ip_address(ip):
     return True
 
 
-def validate_timestamp(timestamp):
+def validate_timestamp(timestamp: str):
+    # TODO: timestamp is never converted from str to int, is this a problem?
     try:
         # originally, I wanted to accept only strict ints, not flaots. But for unix, it doesn't even matter. Also, the
         # int() function turns it into int, so any floating point stuff is removed.
@@ -58,7 +59,7 @@ def validate_go_reports(parameters: str) -> list:
 # READ DATA FROM REDIS
 #
 
-def get_ip_info_from_slips(ip_address):
+def get_ip_info_from_slips(ip_address: str):
     # poll new info from redis
     ip_info = __database__.getIPData(ip_address)
 
@@ -91,7 +92,7 @@ def read_data_from_ip_info(ip_info: dict) -> (float, float):
 # SEND COMMUNICATION TO GO
 #
 
-def build_go_message(message_type, key_type, key, evaluation_type, evaluation=None):
+def build_go_message(message_type: str, key_type: str, key: str, evaluation_type: str, evaluation=None):
     message = {
         "message_type": message_type,
         "key_type": key_type,
@@ -103,7 +104,7 @@ def build_go_message(message_type, key_type, key, evaluation_type, evaluation=No
     return message
 
 
-def build_score_confidence(score, confidence):
+def build_score_confidence(score: float, confidence: float):
     evaluation = {
         "score": score,
         "confidence": confidence
@@ -111,7 +112,7 @@ def build_score_confidence(score, confidence):
     return evaluation
 
 
-def send_evaluation_to_go(ip, score, confidence, recipient):
+def send_evaluation_to_go(ip: str, score: float, confidence: float, recipient: str):
     evaluation_raw = build_score_confidence(score, confidence)
     message_raw = build_go_message("report", "ip", ip, "score_confidence", evaluation=evaluation_raw)
 
@@ -121,7 +122,7 @@ def send_evaluation_to_go(ip, score, confidence, recipient):
     send_b64_to_go(message_b64, recipient)
 
 
-def send_blame_to_go(ip, score, confidence):
+def send_blame_to_go(ip: str, score: float, confidence: float):
     recipient = "*"
     evaluation_raw = build_score_confidence(score, confidence)
     message_raw = build_go_message("blame", "ip", ip, "score_confidence", evaluation=evaluation_raw)
@@ -132,7 +133,7 @@ def send_blame_to_go(ip, score, confidence):
     send_b64_to_go(message_b64, recipient)
 
 
-def send_request_to_go(ip):
+def send_request_to_go(ip: str):
     recipient = "*"
     message_raw = build_go_message("request", "ip", ip, "score_confidence")
 
@@ -142,7 +143,7 @@ def send_request_to_go(ip):
     send_b64_to_go(message_b64, recipient)
 
 
-def send_b64_to_go(message, recipient):
+def send_b64_to_go(message: str, recipient: str):
     data_raw = {"message": message, "recipient": recipient}
     data_json = json.dumps(data_raw)
     print("[publish trust -> go]", data_json)

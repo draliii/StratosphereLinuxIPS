@@ -1,3 +1,4 @@
+import configparser
 from statistics import mean
 
 from modules.p2ptrust.trustdb import TrustDB
@@ -11,12 +12,12 @@ class ReputationModel:
     opinion on peer or IP address."""
 
     # this should be made into an interface, so different models can be easily switched.
-    def __init__(self, trustdb: TrustDB, config):
+    def __init__(self, trustdb: TrustDB, config: configparser.ConfigParser):
         # TODO: add proper OutputProcess printing
         self.trustdb = trustdb
         self.config = config
 
-    def get_opinion_on_ip(self, ipaddr):
+    def get_opinion_on_ip(self, ipaddr: str):
         # get report on that ip that is at most max_age old
         # if no such report is found:
 
@@ -28,10 +29,10 @@ class ReputationModel:
         self.trustdb.update_cached_network_opinion("ip", ipaddr, combined_score, combined_confidence, network_score)
         return combined_score, combined_confidence, network_score
 
-    def compute_peer_reputation(self, trust, score, confidence):
+    def compute_peer_reputation(self, trust: float, score: float, confidence: float):
         return trust * score * confidence
 
-    def normalize_peer_reputations(self, peers):
+    def normalize_peer_reputations(self, peers: list):
         rep_sum = sum(peers)
         w = 1/rep_sum
 
@@ -41,7 +42,7 @@ class ReputationModel:
         weighted_reputations = [w*x for x in peers]
         return rep_sum, rep_avg, weighted_reputations
 
-    def assemble_peer_opinion(self, data):
+    def assemble_peer_opinion(self, data: list):
         reports = []
         reporters = []
 

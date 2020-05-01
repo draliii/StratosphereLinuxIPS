@@ -3,7 +3,7 @@ import datetime
 
 
 class TrustDB:
-    def __init__(self, db_file, drop_tables_on_startup=False):
+    def __init__(self, db_file: str, drop_tables_on_startup: bool = False):
         """ create a database connection to a SQLite database """
         self.conn = sqlite3.connect(db_file)
         if drop_tables_on_startup:
@@ -61,7 +61,7 @@ class TrustDB:
         self.conn.execute("DROP TABLE IF EXISTS peer_ips;")
         self.conn.execute("DROP TABLE IF EXISTS reports;")
 
-    def insert_slips_score(self, ip: str, score: float, confidence: float, timestamp=None):
+    def insert_slips_score(self, ip: str, score: float, confidence: float, timestamp: int = None):
         if timestamp is None:
             timestamp = datetime.datetime.now()
         parameters = (ip, score, confidence, timestamp)
@@ -69,7 +69,7 @@ class TrustDB:
                           "VALUES (?, ?, ?, ?);", parameters)
         self.conn.commit()
 
-    def insert_go_score(self, peerid: str, trust: float, timestamp=None):
+    def insert_go_score(self, peerid: str, trust: float, timestamp: int = None):
         if timestamp is None:
             timestamp = datetime.datetime.now()
         parameters = (peerid, trust, timestamp)
@@ -77,7 +77,7 @@ class TrustDB:
                           "VALUES (?, ?, ?);", parameters)
         self.conn.commit()
 
-    def insert_go_ip_pairing(self, peerid: str, ip: str, timestamp=None):
+    def insert_go_ip_pairing(self, peerid: str, ip: str, timestamp: int = None):
         if timestamp is None:
             timestamp = datetime.datetime.now()
         parameters = (ip, peerid, timestamp)
@@ -85,7 +85,7 @@ class TrustDB:
                           "VALUES (?, ?, ?);", parameters)
         self.conn.commit()
 
-    def insert_new_go_data(self, reports):
+    def insert_new_go_data(self, reports: list):
         # TODO: validate reports, add timestamps
         self.conn.executemany("INSERT INTO reports "
                               "(reporter_peerid, key_type, reported_key, score, confidence, update_time) "
@@ -93,34 +93,36 @@ class TrustDB:
         self.conn.commit()
         pass
 
-    def insert_new_go_report(self, reporter_peerid, key_type, reported_key, score, confidence, update_time):
-        parameters = (reporter_peerid, key_type, reported_key, score, confidence, update_time)
+    def insert_new_go_report(self, reporter_peerid: str, key_type: str, reported_key: str, score: float, confidence: float, timestamp: int = None):
+        if timestamp is None:
+            timestamp = datetime.datetime.now()
+        parameters = (reporter_peerid, key_type, reported_key, score, confidence, timestamp)
         self.conn.execute("INSERT INTO reports "
                           "(reporter_peerid, key_type, reported_key, score, confidence, update_time) "
                           "VALUES (?, ?, ?, ?, ?, ?)", parameters)
         self.conn.commit()
         pass
 
-    def update_cached_network_opinion(self, key_type, ipaddress, score, confidence, network_score):
+    def update_cached_network_opinion(self, key_type: str, reported_key: str, score: float, confidence: float, network_score: float):
         self.conn.execute("REPLACE INTO"
                           " opinion_cache (key_type, reported_key, score, confidence, network_score, update_time)"
                           "VALUES (?, ?, ?, ?, ?, strftime('%s','now'));",
-                          (key_type, ipaddress, score, confidence, network_score))
+                          (key_type, reported_key, score, confidence, network_score))
         self.conn.commit()
 
-    def get_cached_network_opinion(self, key_type, ipaddress):
+    def get_cached_network_opinion(self, key_type: str, reported_key: str):
         cache_cur = self.conn.execute("SELECT score, confidence, network_score, update_time "
                                       "FROM opinion_cache "
                                       "WHERE key_type = ? "
                                       "  AND reported_key = ? "
-                                      "ORDER BY update_time LIMIT 1;", (key_type, ipaddress))
+                                      "ORDER BY update_time LIMIT 1;", (key_type, reported_key))
 
         result = cache_cur.fetchone()
         if result is None:
             result = None, None, None, None
         return result
 
-    def get_opinion_on_ip(self, ipaddress):
+    def get_opinion_on_ip(self, ipaddress: str):
         reports_cur = self.conn.execute("SELECT reports.reporter_peerid AS reporter_peerid,"
                                         "       MAX(reports.update_time) AS report_timestamp,"
                                         "       reports.score AS report_score,"
@@ -180,9 +182,6 @@ class TrustDB:
             reporters_scores.append((report_score, report_confidence, 1, reporter_score, reporter_confidence))
 
         return reporters_scores
-
-    def get_opinion_on_peer(self, peerid):
-        pass
 
 
 if __name__ == '__main__':

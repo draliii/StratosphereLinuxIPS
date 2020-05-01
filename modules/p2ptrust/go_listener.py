@@ -1,5 +1,6 @@
 import base64
 import binascii
+import configparser
 import json
 import multiprocessing
 
@@ -17,7 +18,7 @@ class GoListener(multiprocessing.Process):
     If peer sends invalid data, his reputation is lowered.
     """
 
-    def __init__(self, trustdb: TrustDB, config):
+    def __init__(self, trustdb: TrustDB, config: configparser.ConfigParser):
         super().__init__()
 
         print("Starting go listener")
@@ -63,7 +64,7 @@ class GoListener(multiprocessing.Process):
 
             print("Invalid command: ", data)
 
-    def process_go_data(self, parameters):
+    def process_go_data(self, parameters: str):
         """Process the report received from remote peer
 
         The report is expected to have the format explained in go_report_format.md. If the message is valid, it is
@@ -102,7 +103,7 @@ class GoListener(multiprocessing.Process):
             # TODO: evaluate data from peer and asses if it was good or not.
             #       For invalid base64 etc, note that the node is bad
 
-    def process_message(self, reporter, report_time, message):
+    def process_message(self, reporter: str, report_time: int, message: str):
 
         # message is in base64
         try:
@@ -144,7 +145,7 @@ class GoListener(multiprocessing.Process):
             print("Peer sent unknown message type")
             return
 
-    def process_message_request(self, reporter, report_time, data):
+    def process_message_request(self, reporter: str, report_time: int, data: dict):
         # validate keys in message
         try:
             key = data["key"]
@@ -174,7 +175,7 @@ class GoListener(multiprocessing.Process):
         if score is not None:
             send_evaluation_to_go(key, score, confidence, reporter)
 
-    def process_message_report(self, reporter, report_time, data):
+    def process_message_report(self, reporter: str, report_time: int, data: dict):
         # validate keys in message
         try:
             key = data["key"]
@@ -203,7 +204,7 @@ class GoListener(multiprocessing.Process):
 
         self.evaluation_processors[evaluation_type](reporter, report_time, key_type, key, evaluation)
 
-    def process_evaluation_score_confidence(self, reporter, report_time, key_type, key, evaluation):
+    def process_evaluation_score_confidence(self, reporter: str, report_time: int, key_type: str, key: str, evaluation: dict):
         # check that both fields are present
         try:
             score = evaluation["score"]

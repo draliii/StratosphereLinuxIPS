@@ -12,6 +12,7 @@ from modules.p2ptrust.reputation_model import ReputationModel
 from modules.p2ptrust.utils import read_data_from_ip_info, get_ip_info_from_slips, validate_ip_address, \
     send_evaluation_to_go, send_blame_to_go, send_request_to_go
 from slips.common.abstracts import Module
+import configparser
 
 
 def validate_slips_data(message_data: str) -> (str, int):
@@ -43,11 +44,11 @@ class Trust(Module, multiprocessing.Process):
     description = 'Enables sharing detection data with other Slips instances'
     authors = ['Dita']
 
-    def __init__(self, outputqueue, config):
+    def __init__(self, output_queue: multiprocessing.Queue, config: configparser.ConfigParser):
         multiprocessing.Process.__init__(self)
-        # All the printing output should be sent to the outputqueue. The outputqueue is connected to another process
+        # All the printing output should be sent to the output_queue. The output_queue is connected to another process
         # called OutputProcess
-        self.outputqueue = outputqueue
+        self.output_queue = output_queue
         # In case you need to read the slips.conf configuration file for your own configurations
         self.config = config
         # To which channels do you want to subscribe? When a message arrives on the channel the module will wakeup
@@ -80,7 +81,7 @@ class Trust(Module, multiprocessing.Process):
         self.go_listener_process = GoListener(self.sqlite_db, self.config)
         self.go_listener_process.start()
 
-    def print(self, text, verbose=1, debug=0):
+    def print(self, text: str, verbose: int = 1, debug: int = 0):
         """ 
         Function to use to print text using the outputqueue of slips.
         Slips then decides how, when and where to print this text by taking all the processes into account
@@ -94,7 +95,7 @@ class Trust(Module, multiprocessing.Process):
         """
 
         vd_text = str(int(verbose) * 10 + int(debug))
-        self.outputqueue.put(vd_text + '|' + self.name + '|[' + self.name + '] ' + str(text))
+        self.output_queue.put(vd_text + '|' + self.name + '|[' + self.name + '] ' + str(text))
 
     def run(self):
         try:
@@ -132,7 +133,7 @@ class Trust(Module, multiprocessing.Process):
             self.print(str(inst), 0, 1)
             return True
 
-    def send_to_slips(self, message):
+    def send_to_slips(self, message: str):
         print("[publish trust -> slips]", message)
         __database__.publish("p2p_data_request", message)
 
@@ -164,7 +165,8 @@ class Trust(Module, multiprocessing.Process):
         # compare slips data with data in go
         data_already_reported = True
         try:
-            cached_score, cached_confidence, network_score, timestamp = self.sqlite_db.get_cached_network_opinion("ip", ip_address)
+            cached_opinion = self.sqlite_db.get_cached_network_opinion("ip", ip_address)
+            cached_score, cached_confidence, network_score, timestamp = cached_opinion
             if cached_score is None:
                 data_already_reported = False
             elif abs(score - cached_score) < 0.1:
@@ -182,7 +184,7 @@ class Trust(Module, multiprocessing.Process):
         if score > 0.8 and confidence > 0.6:
             send_blame_to_go(ip_address, score, confidence)
 
-    def handle_data_request(self, message_data):
+    def handle_data_request(self, message_data: str):
         """
         Read data request from Slips and collect the data.
 
