@@ -3,6 +3,8 @@ import ipaddress
 import time
 import json
 
+from slips.core.database import __database__
+
 
 #
 # DATA VALIDATION METHODS
@@ -56,9 +58,16 @@ def validate_go_reports(parameters: str) -> list:
 # READ DATA FROM REDIS
 #
 
-def get_ip_info_from_slips(rdb, ip_address):
+def get_ip_info_from_slips(ip_address):
     # poll new info from redis
-    ip_info = rdb.getIPData(ip_address)
+    ip_info = __database__.getIPData(ip_address)
+
+    # There is a bug in the database where sometimes False is returned when key is not found. Correctly, dictionary
+    # should be always returned, even if it is empty. This check cannot be simplified to `if not ip_info`, because I
+    # want the empty dictionary to be handled by the read data function.
+    # TODO: when database is fixed and doesn't return booleans, remove this IF statement
+    if ip_info == False:
+        return None, None
 
     slips_score, slips_confidence = read_data_from_ip_info(ip_info)
     # check that both values were provided
@@ -102,17 +111,17 @@ def build_score_confidence(score, confidence):
     return evaluation
 
 
-def send_evaluation_to_go(rdb, ip, score, confidence, recipient):
+def send_evaluation_to_go(ip, score, confidence, recipient):
     evaluation_raw = build_score_confidence(score, confidence)
     message_raw = build_go_message("report", "ip", ip, "score_confidence", evaluation=evaluation_raw)
 
     message_json = json.dumps(message_raw)
     message_b64 = base64.b64encode(bytes(message_json, "ascii")).decode()
 
-    send_b64_to_go(rdb, message_b64, recipient)
+    send_b64_to_go(message_b64, recipient)
 
 
-def send_blame_to_go(rdb, ip, score, confidence):
+def send_blame_to_go(ip, score, confidence):
     recipient = "*"
     evaluation_raw = build_score_confidence(score, confidence)
     message_raw = build_go_message("blame", "ip", ip, "score_confidence", evaluation=evaluation_raw)
@@ -120,21 +129,21 @@ def send_blame_to_go(rdb, ip, score, confidence):
     message_json = json.dumps(message_raw)
     message_b64 = base64.b64encode(bytes(message_json, "ascii")).decode()
 
-    send_b64_to_go(rdb, message_b64, recipient)
+    send_b64_to_go(message_b64, recipient)
 
 
-def send_request_to_go(rdb, ip):
+def send_request_to_go(ip):
     recipient = "*"
     message_raw = build_go_message("request", "ip", ip, "score_confidence")
 
     message_json = json.dumps(message_raw)
     message_b64 = base64.b64encode(bytes(message_json, "ascii")).decode()
 
-    send_b64_to_go(rdb, message_b64, recipient)
+    send_b64_to_go(message_b64, recipient)
 
 
-def send_b64_to_go(rdb, message, recipient):
+def send_b64_to_go(message, recipient):
     data_raw = {"message": message, "recipient": recipient}
     data_json = json.dumps(data_raw)
     print("[publish trust -> go]", data_json)
-    rdb.publish("p2p_pygo", data_json)
+    __database__.publish("p2p_pygo", data_json)

@@ -1,5 +1,4 @@
 # Must imports
-import ipaddress
 import multiprocessing
 import platform
 
@@ -51,8 +50,6 @@ class Trust(Module, multiprocessing.Process):
         self.outputqueue = outputqueue
         # In case you need to read the slips.conf configuration file for your own configurations
         self.config = config
-        # Start the DB
-        __database__.start(self.config)
         # To which channels do you want to subscribe? When a message arrives on the channel the module will wakeup
         # The options change, so the last list is on the slips/core/database.py file. However common options are:
         # - new_ip
@@ -78,9 +75,9 @@ class Trust(Module, multiprocessing.Process):
             self.timeout = None
 
         self.sqlite_db = TrustDB(r"trustdb.db", drop_tables_on_startup=True)
-        self.reputation_model = ReputationModel(self.sqlite_db, __database__, self.config)
+        self.reputation_model = ReputationModel(self.sqlite_db, self.config)
 
-        self.go_listener_process = GoListener(self.sqlite_db, __database__, self.config)
+        self.go_listener_process = GoListener(self.sqlite_db, self.config)
         self.go_listener_process.start()
 
     def print(self, text, verbose=1, debug=0):
@@ -154,7 +151,7 @@ class Trust(Module, multiprocessing.Process):
             print("IP validation failed")
             return
 
-        score, confidence = get_ip_info_from_slips(__database__, ip_address)
+        score, confidence = get_ip_info_from_slips(ip_address)
         if score is None:
             print("IP doesn't have any score/confidence values in DB")
             return
@@ -179,11 +176,11 @@ class Trust(Module, multiprocessing.Process):
             return
 
         if not data_already_reported:
-            send_evaluation_to_go(__database__, ip_address, score, confidence, "*")
+            send_evaluation_to_go(ip_address, score, confidence, "*")
 
         # TODO: discuss - based on what criteria should we start blaming?
         if score > 0.8 and confidence > 0.6:
-            send_blame_to_go(__database__, ip_address, score, confidence)
+            send_blame_to_go(ip_address, score, confidence)
 
     def handle_data_request(self, message_data):
         """
@@ -225,7 +222,7 @@ class Trust(Module, multiprocessing.Process):
         # TODO: in some cases, it is not necessary to wait, specify that and implement it
         #       I do not remember writing this comment. I have no idea in which cases there is no need to wait? Maybe
         #       when everybody responds asap?
-        send_request_to_go(__database__, ip_address)
+        send_request_to_go(ip_address)
 
         # go will send a reply in no longer than 10s (or whatever the timeout there is set to). The reply will be
         # processed by an independent process in this module and database will be updated accordingly

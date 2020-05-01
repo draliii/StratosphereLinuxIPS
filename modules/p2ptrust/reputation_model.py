@@ -1,4 +1,3 @@
-from slips.core.database import Database as SlipsDatabase
 from statistics import mean
 
 from modules.p2ptrust.trustdb import TrustDB
@@ -12,10 +11,9 @@ class ReputationModel:
     opinion on peer or IP address."""
 
     # this should be made into an interface, so different models can be easily switched.
-    def __init__(self, trustdb: TrustDB, redis_database: SlipsDatabase, config):
+    def __init__(self, trustdb: TrustDB, config):
         # TODO: add proper OutputProcess printing
         self.trustdb = trustdb
-        self.rdb = redis_database
         self.config = config
 
     def get_opinion_on_ip(self, ipaddr):
