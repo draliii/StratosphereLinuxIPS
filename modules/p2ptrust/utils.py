@@ -79,7 +79,14 @@ def validate_go_reports(data: str) -> list:
 # READ DATA FROM REDIS
 #
 
-def get_ip_info_from_slips(ip_address: str):
+def get_ip_info_from_slips(ip_address: str) -> (float, float):
+    """
+    Get score and confidence on IP from Slips.
+
+    :param ip_address: The IP address to check
+    :return: Tuple with score and confidence. If data is not there, (None, None) is returned instead.
+    """
+
     # poll new info from redis
     ip_info = __database__.getIPData(ip_address)
 
@@ -100,6 +107,13 @@ def get_ip_info_from_slips(ip_address: str):
 
 # parse data from redis
 def read_data_from_ip_info(ip_info: dict) -> (float, float):
+    """
+    Get score and confidence from the data that is saved in Redis.
+
+    :param ip_info: The redis data for one IP address
+    :return: Tuple with score and confidence. If data is not there, (None, None) is returned instead.
+    """
+
     try:
         score = ip_info["score"]
         confidence = ip_info["confidence"]
@@ -112,7 +126,18 @@ def read_data_from_ip_info(ip_info: dict) -> (float, float):
 # SEND COMMUNICATION TO GO
 #
 
-def build_go_message(message_type: str, key_type: str, key: str, evaluation_type: str, evaluation=None):
+def build_go_message(message_type: str, key_type: str, key: str, evaluation_type: str, evaluation=None) -> dict:
+    """
+    Assemble parameters to one dictionary, with keys that are expected by the remote peer.
+
+    :param message_type: Type of message (request, report, blame...)
+    :param key_type: Type of key, usually "ip"
+    :param key: The key the message is about
+    :param evaluation_type: Type of evaluation that is reported (for report and blame) or expected (for request message)
+    :param evaluation: The score that is being reported (for report and blame). This can be left out for request message
+    :return: A dictionary with proper values set.
+    """
+
     message = {
         "message_type": message_type,
         "key_type": key_type,
@@ -124,7 +149,15 @@ def build_go_message(message_type: str, key_type: str, key: str, evaluation_type
     return message
 
 
-def build_score_confidence(score: float, confidence: float):
+def build_score_confidence(score: float, confidence: float) -> dict:
+    """
+    Build the dictionary with score and confidence
+
+    :param score: The score value
+    :param confidence: The confidence value
+    :return: The evaluation dictionary
+    """
+
     evaluation = {
         "score": score,
         "confidence": confidence
@@ -132,7 +165,17 @@ def build_score_confidence(score: float, confidence: float):
     return evaluation
 
 
-def send_evaluation_to_go(ip: str, score: float, confidence: float, recipient: str):
+def send_evaluation_to_go(ip: str, score: float, confidence: float, recipient: str) -> None:
+    """
+    Take data and send it to a peer as report.
+
+    :param ip: The IP that is being reported
+    :param score: The score for that IP
+    :param confidence: The confidence for that IP
+    :param recipient: The peer that should receive the report. Use "*" wildcard to broadcast to everyone
+    :return: None
+    """
+
     evaluation_raw = build_score_confidence(score, confidence)
     message_raw = build_go_message("report", "ip", ip, "score_confidence", evaluation=evaluation_raw)
 
@@ -142,7 +185,16 @@ def send_evaluation_to_go(ip: str, score: float, confidence: float, recipient: s
     send_b64_to_go(message_b64, recipient)
 
 
-def send_blame_to_go(ip: str, score: float, confidence: float):
+def send_blame_to_go(ip: str, score: float, confidence: float) -> None:
+    """
+    Take data and send it to a peer as a blame.
+
+    :param ip: The IP that is being blamed
+    :param score: The score for that IP
+    :param confidence: The confidence for that IP
+    :return: None
+    """
+
     recipient = "*"
     evaluation_raw = build_score_confidence(score, confidence)
     message_raw = build_go_message("blame", "ip", ip, "score_confidence", evaluation=evaluation_raw)
@@ -153,7 +205,16 @@ def send_blame_to_go(ip: str, score: float, confidence: float):
     send_b64_to_go(message_b64, recipient)
 
 
-def send_request_to_go(ip: str):
+def send_request_to_go(ip: str) -> None:
+    """
+    Send a request about an IP to peers.
+
+    There is no return value. Peers might answer and the answer will be processed by this module eventually.
+
+    :param ip: The IP that we are asking about
+    :return: None
+    """
+
     recipient = "*"
     message_raw = build_go_message("request", "ip", ip, "score_confidence")
 
@@ -163,7 +224,18 @@ def send_request_to_go(ip: str):
     send_b64_to_go(message_b64, recipient)
 
 
-def send_b64_to_go(message: str, recipient: str):
+def send_b64_to_go(message: str, recipient: str) -> None:
+    """
+    Send message to a peer
+
+    Encode message as base64 string, assign the recipient for the message and send it to the go part. It will look for
+    the recipient and send the message to him. Use "*" to broadcast to everybody.
+
+    :param message: The message to send
+    :param recipient: The peerID of the peer that should get the message, or "*" to broadcast the message
+    :return: None
+    """
+
     data_raw = {"message": message, "recipient": recipient}
     data_json = json.dumps(data_raw)
     print("[publish trust -> go]", data_json)
