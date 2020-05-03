@@ -64,11 +64,12 @@ class GoListener(multiprocessing.Process):
 
             print("Invalid command: ", data)
 
-    def process_go_data(self, parameters: str):
-        """Process the report received from remote peer
+    def process_go_data(self, parameters: str) -> None:
+        """Process data sent by the go layer
 
-        The report is expected to have the format explained in go_report_format.md. If the message is valid, it is
-        inserted into the database. If it does not comply with the format, the reporter's reputation is lowered."""
+        The data is expected to be a list of messages received from go peers. They are parsed and inserted into the
+         database. If a message does not comply with the format, the reporter's reputation is lowered.
+        """
 
         # check that the data was parsed correctly in the go part of the app
         # if there were any issues, the reports list will be empty
@@ -96,56 +97,75 @@ class GoListener(multiprocessing.Process):
                 print("Invalid timestamp")
                 return
 
-            self.process_message(report[key_reporter],
-                                 report[key_report_time],
-                                 report[key_message]
-                                 )
-            # TODO: evaluate data from peer and asses if it was good or not.
-            #       For invalid base64 etc, note that the node is bad
+            reporter = report[key_reporter]
+            report_time = report[key_report_time]
+            message = report[key_message]
 
-    def process_message(self, reporter: str, report_time: int, message: str):
+            message_type, data = self.validate_message(message)
+
+            if message_type == "report":
+                self.process_message_report(reporter, report_time, data)
+
+            elif message_type == "request":
+                self.process_message_request(reporter, report_time, data)
+
+            elif message_type == "blame":
+                print("blame is not implemented yet")
+
+            else:
+                # TODO: lower reputation
+                print("Peer sent unknown message type")
+                return
+
+    def validate_message(self, message: str) -> (str, dict):
+        """
+        Check that message is formatted correctly, read message type and return decoded data.
+
+        The message is decoded and converted to json. The message type is read from the json. If encoding or json is
+        wrong, "invalid_format" is returned as message type, and message data are empty. Otherwise, the actual message
+        type sent by peer is returned along with decoded message data.
+
+        :param message: base64 encoded message sent by the peer
+        :return: message type, message as dictionary
+        """
 
         # message is in base64
         try:
             decoded = base64.b64decode(message)
         except binascii.Error:
-            # TODO: lower reputation
             print("base64 cannot be parsed properly")
-            return
+            return "invalid_format", {}
 
         # validate json
         print(decoded)
         try:
             data = json.loads(decoded)
         except:
-            # TODO: lower reputation
             print("Peer sent invalid json")
-            return
+            return "invalid_format", {}
 
         print("peer json ok")
 
         try:
             message_type = data["message_type"]
         except KeyError:
-            # TODO: lower reputation
             print("Peer didn't specify message type")
-            return
+            return "invalid_format", {}
 
-        if message_type == "report":
-            self.process_message_report(reporter, report_time, data)
+        return message_type, data
 
-        elif message_type == "request":
-            self.process_message_request(reporter, report_time, data)
+    def process_message_request(self, reporter: str, report_time: int, data: dict) -> None:
+        """
+        Handle data request from a peer
 
-        elif message_type == "blame":
-            print("blame is not implemented yet")
+        Details are read from the request, and response is read from slips database. Response data is formatted as json
+        and sent to the peer that asked.
 
-        else:
-            # TODO: lower reputation
-            print("Peer sent unknown message type")
-            return
-
-    def process_message_request(self, reporter: str, report_time: int, data: dict):
+        :param reporter: The peer that sent the request
+        :param report_time: Time of receiving the request, provided by the go part
+        :param data: Request data
+        :return: None. Result is sent directly to the peer
+        """
         # validate keys in message
         try:
             key = data["key"]
@@ -174,8 +194,21 @@ class GoListener(multiprocessing.Process):
         score, confidence = get_ip_info_from_slips(key)
         if score is not None:
             send_evaluation_to_go(key, score, confidence, reporter)
+        else:
+            # TODO: perhaps tell the peer "sorry, I don't know"?
+            pass
 
     def process_message_report(self, reporter: str, report_time: int, data: dict):
+        """
+        Handle a report from a peer
+
+        Details are read from the report and inserted into the database.
+
+        :param reporter: The peer that sent the report
+        :param report_time: Time of receiving the report, provided by the go part
+        :param data: Report data
+        :return: None. Result is saved to the database
+        """
         # validate keys in message
         try:
             key = data["key"]
@@ -204,7 +237,23 @@ class GoListener(multiprocessing.Process):
 
         self.evaluation_processors[evaluation_type](reporter, report_time, key_type, key, evaluation)
 
-    def process_evaluation_score_confidence(self, reporter: str, report_time: int, key_type: str, key: str, evaluation: dict):
+        # TODO: evaluate data from peer and asses if it was good or not.
+        #       For invalid base64 etc, note that the node is bad
+
+    def process_evaluation_score_confidence(self, reporter: str, report_time: int, key_type: str, key: str,
+                                            evaluation: dict):
+        """
+        Handle reported score and confidence
+
+        Data is read from provided dictionary, and saved into the database.
+
+        :param reporter: The peer that sent the data
+        :param report_time: Time of receiving the data, provided by the go part
+        :param key_type: The type of key the peer is reporting (only "ip" is supported now)
+        :param key: The key itself
+        :param evaluation: Dictionary containing score and confidence values
+        :return: None, data is saved to the database
+        """
         # check that both fields are present
         try:
             score = evaluation["score"]
@@ -239,7 +288,3 @@ class GoListener(multiprocessing.Process):
             reporter, report_time, key, key_type, score, confidence)
         print(result)
         pass
-
-
-
-
