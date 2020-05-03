@@ -81,7 +81,7 @@ class Trust(Module, multiprocessing.Process):
         self.go_listener_process = GoListener(self.sqlite_db, self.config)
         self.go_listener_process.start()
 
-    def print(self, text: str, verbose: int = 1, debug: int = 0):
+    def print(self, text: str, verbose: int = 1, debug: int = 0) -> None:
         """ 
         Function to use to print text using the outputqueue of slips.
         Slips then decides how, when and where to print this text by taking all the processes into account
@@ -133,18 +133,30 @@ class Trust(Module, multiprocessing.Process):
             self.print(str(inst), 0, 1)
             return True
 
-    def send_to_slips(self, message: str):
+    def send_to_slips(self, message: str) -> None:
+        """
+        Send message to Slips
+
+        A function to send a string message to the p2p_data_request channel, on which slips communicates. This will be
+        probably removed in later versions, as the result should be instead saved as part of IP data
+        :param message:
+        :return:
+        """
+
+        # TODO: save new results as part of IP data instead of communicating with slips (who is listening, anyway?)
+        # an interesting issue here is that UPDATE message is sent every time after IP data is modified - but we don't
+        # want to react to our own update - this could be solved by some kind of timeout in the update listener
+
         print("[publish trust -> slips]", message)
         __database__.publish("p2p_data_request", message)
 
-    def handle_update(self, ip_address: str):
+    def handle_update(self, ip_address: str) -> None:
         """
         Handle IP scores changing in Slips received from the ip_info_change channel
 
         This method checks if new score differs from opinion known to the network, and if so, it means that it is worth
         sharing and it will be shared. Additionally, if the score is serious, the node will be blamed
-        :param ip_address:
-        :return:
+        :param ip_address: The IP address sent through the ip_info_change channel (if it is not valid IP, it returns)
         """
 
         # abort if the IP is not valid
@@ -184,7 +196,7 @@ class Trust(Module, multiprocessing.Process):
         if score > 0.8 and confidence > 0.6:
             send_blame_to_go(ip_address, score, confidence)
 
-    def handle_data_request(self, message_data: str):
+    def handle_data_request(self, message_data: str) -> None:
         """
         Read data request from Slips and collect the data.
 
@@ -206,6 +218,8 @@ class Trust(Module, multiprocessing.Process):
         :param message_data: The data received from the redis channel `p2p_data_response`
         :return: None, the result is sent via a channel
         """
+
+        # TODO: modify this to write data as IPinfo to the redis, not to a channel
 
         ip_address, cache_age = validate_slips_data(message_data)
         if ip_address is None:
