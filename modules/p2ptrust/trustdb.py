@@ -93,7 +93,8 @@ class TrustDB:
         self.conn.commit()
         pass
 
-    def insert_new_go_report(self, reporter_peerid: str, key_type: str, reported_key: str, score: float, confidence: float, timestamp: int = None):
+    def insert_new_go_report(self, reporter_peerid: str, key_type: str, reported_key: str, score: float,
+                             confidence: float, timestamp: int = None):
         if timestamp is None:
             timestamp = datetime.datetime.now()
         parameters = (reporter_peerid, key_type, reported_key, score, confidence, timestamp)
@@ -103,7 +104,8 @@ class TrustDB:
         self.conn.commit()
         pass
 
-    def update_cached_network_opinion(self, key_type: str, reported_key: str, score: float, confidence: float, network_score: float):
+    def update_cached_network_opinion(self, key_type: str, reported_key: str, score: float, confidence: float,
+                                      network_score: float):
         self.conn.execute("REPLACE INTO"
                           " opinion_cache (key_type, reported_key, score, confidence, network_score, update_time)"
                           "VALUES (?, ?, ?, ?, ?, strftime('%s','now'));",

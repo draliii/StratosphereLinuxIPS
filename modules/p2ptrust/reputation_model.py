@@ -1,6 +1,5 @@
 import configparser
 from statistics import mean
-
 from modules.p2ptrust.trustdb import TrustDB
 
 

@@ -1,18 +1,14 @@
-# Must imports
 import multiprocessing
+import configparser
 import platform
-
-# Your imports
 import time
-
 from modules.p2ptrust.trustdb import TrustDB
 from slips.core.database import __database__
 from modules.p2ptrust.go_listener import GoListener
 from modules.p2ptrust.reputation_model import ReputationModel
-from modules.p2ptrust.utils import read_data_from_ip_info, get_ip_info_from_slips, validate_ip_address, \
-    send_evaluation_to_go, send_blame_to_go, send_request_to_go
+from modules.p2ptrust.utils import get_ip_info_from_slips, validate_ip_address, send_evaluation_to_go, \
+    send_blame_to_go, send_request_to_go
 from slips.common.abstracts import Module
-import configparser
 
 
 def validate_slips_data(message_data: str) -> (str, int):

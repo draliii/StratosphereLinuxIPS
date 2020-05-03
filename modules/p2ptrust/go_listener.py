@@ -141,7 +141,7 @@ class GoListener(multiprocessing.Process):
         print(decoded)
         try:
             data = json.loads(decoded)
-        except:
+        except json.decoder.JSONDecodeError:
             print("Peer sent invalid json")
             return "invalid_format", {}
 
@@ -262,7 +262,7 @@ class GoListener(multiprocessing.Process):
         try:
             score = evaluation["score"]
             confidence = evaluation["confidence"]
-        except:
+        except KeyError:
             print("Score or confidence are missing")
             # TODO: lower reputation
             return
@@ -271,7 +271,7 @@ class GoListener(multiprocessing.Process):
         try:
             score = float(score)
             confidence = float(confidence)
-        except:
+        except ValueError:
             print("Score or confidence have wrong data type")
             # TODO: lower reputation
             return

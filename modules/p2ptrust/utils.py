@@ -22,7 +22,7 @@ def validate_ip_address(ip: str) -> bool:
     try:
         # this fails on invalid ip address
         ipaddress.ip_address(ip)
-    except:
+    except ValueError:
         return False
 
     return True
@@ -41,7 +41,7 @@ def validate_timestamp(timestamp: str) -> (int, bool):
         # originally, I wanted to accept only strict ints, not flaots. But for unix, it doesn't even matter. Also, the
         # int() function turns it into int, so any floating point stuff is removed.
         int_timestamp = int(timestamp)
-    except:
+    except ValueError:
         print("Timestamp is not a number")
         return 0, False
 
@@ -63,8 +63,7 @@ def validate_go_reports(data: str) -> list:
     # try parsing the json. If this fails, there is an error in the redis channel or in go code, not the remote peers
     try:
         reports = json.loads(data)
-    except:
-        # TODO: specify json error
+    except json.decoder.JSONDecodeError:
         print("Go send invalid json")
         return []
 
