@@ -24,6 +24,7 @@ def validate_slips_data(message_data: str) -> (str, int):
     :param message_data: data from slips request channel
     :return: parsed values or None tuple
     """
+
     try:
         ip_address, time_since_cached = message_data.split(" ", 1)
         time_since_cached = int(time_since_cached)

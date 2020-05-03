@@ -93,12 +93,13 @@ class GoListener(multiprocessing.Process):
                 print("Some key is missing in report")
                 return
 
-            if not validate_timestamp(report[key_report_time]):
+            report_time, success = validate_timestamp(report[key_report_time])
+
+            if not success:
                 print("Invalid timestamp")
                 return
 
             reporter = report[key_reporter]
-            report_time = report[key_report_time]
             message = report[key_message]
 
             message_type, data = self.validate_message(message)
@@ -166,6 +167,7 @@ class GoListener(multiprocessing.Process):
         :param data: Request data
         :return: None. Result is sent directly to the peer
         """
+
         # validate keys in message
         try:
             key = data["key"]
@@ -209,6 +211,7 @@ class GoListener(multiprocessing.Process):
         :param data: Report data
         :return: None. Result is saved to the database
         """
+
         # validate keys in message
         try:
             key = data["key"]
@@ -254,6 +257,7 @@ class GoListener(multiprocessing.Process):
         :param evaluation: Dictionary containing score and confidence values
         :return: None, data is saved to the database
         """
+
         # check that both fields are present
         try:
             score = evaluation["score"]

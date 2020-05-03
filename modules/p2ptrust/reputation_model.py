@@ -30,6 +30,7 @@ class ReputationModel:
         :param ipaddr: The IP address for which the opinion is computed
         :return: average peer reputation, final score and final confidence
         """
+
         # get report on that ip that is at most max_age old
         # if no such report is found:
 
@@ -50,6 +51,7 @@ class ReputationModel:
         :param confidence: confidence by slips for the peer's IP address
         :return: The trust we should put in the report given by this peer
         """
+
         return trust * score * confidence
 
     def normalize_peer_reputations(self, peers: list) -> (float, float, list):
@@ -62,6 +64,7 @@ class ReputationModel:
         :param peers: a list of peer reputations
         :return: summed reputation of all peers, average reputation, a list of weighted reputations
         """
+
         rep_sum = sum(peers)
         w = 1/rep_sum
 
@@ -83,6 +86,7 @@ class ReputationModel:
         :param data: a list of peers and their reports, in the format given by TrustDB.get_opinion_on_ip()
         :return: average peer reputation, final score and final confidence
         """
+
         reports = []
         reporters = []
 

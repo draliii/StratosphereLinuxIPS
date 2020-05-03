@@ -11,7 +11,14 @@ from slips.core.database import __database__
 #
 
 
-def validate_ip_address(ip: str):
+def validate_ip_address(ip: str) -> bool:
+    """
+    Make sure that the given string is a valid IP address
+
+    :param ip: The IP address to validate
+    :return: True if it is ok, False if it isn't an IP
+    """
+
     try:
         # this fails on invalid ip address
         ipaddress.ip_address(ip)
@@ -21,7 +28,14 @@ def validate_ip_address(ip: str):
     return True
 
 
-def validate_timestamp(timestamp: str):
+def validate_timestamp(timestamp: str) -> (int, bool):
+    """
+    Make sure the given string is a timestamp between 0 and now
+
+    :param timestamp: The string to validate
+    :return: timestamp (or zero when validation failed) and success of the validation
+    """
+
     # TODO: timestamp is never converted from str to int, is this a problem?
     try:
         # originally, I wanted to accept only strict ints, not flaots. But for unix, it doesn't even matter. Also, the
@@ -29,20 +43,26 @@ def validate_timestamp(timestamp: str):
         int_timestamp = int(timestamp)
     except:
         print("Timestamp is not a number")
-        return False
+        return 0, False
 
     if int_timestamp > time.time() or int_timestamp < 0:
         print("Invalid timestamp value")
-        return False
+        return 0, False
 
-    return True
+    return int_timestamp, True
 
 
-def validate_go_reports(parameters: str) -> list:
-    # try parsing the json error. If this fails, there is an error in the redis channel or in go code, not the
-    # remote peers
+def validate_go_reports(data: str) -> list:
+    """
+    Process data received from go. It should be a json list dumped as string.
+
+    :param data: Data received from go
+    :return: The parsed list. In case of error, the list will be empty.
+    """
+
+    # try parsing the json. If this fails, there is an error in the redis channel or in go code, not the remote peers
     try:
-        reports = json.loads(parameters)
+        reports = json.loads(data)
     except:
         # TODO: specify json error
         print("Go send invalid json")
