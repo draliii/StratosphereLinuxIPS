@@ -36,9 +36,8 @@ def validate_timestamp(timestamp: str) -> (int, bool):
     :return: timestamp (or zero when validation failed) and success of the validation
     """
 
-    # TODO: timestamp is never converted from str to int, is this a problem?
     try:
-        # originally, I wanted to accept only strict ints, not flaots. But for unix, it doesn't even matter. Also, the
+        # originally, I wanted to accept only strict ints, not floats. But for unix, it doesn't even matter. Also, the
         # int() function turns it into int, so any floating point stuff is removed.
         int_timestamp = int(timestamp)
     except ValueError:
@@ -177,6 +176,23 @@ def send_evaluation_to_go(ip: str, score: float, confidence: float, recipient: s
 
     evaluation_raw = build_score_confidence(score, confidence)
     message_raw = build_go_message("report", "ip", ip, "score_confidence", evaluation=evaluation_raw)
+
+    message_json = json.dumps(message_raw)
+    message_b64 = base64.b64encode(bytes(message_json, "ascii")).decode()
+
+    send_b64_to_go(message_b64, recipient)
+
+
+def send_empty_evaluation_to_go(ip: str, recipient: str) -> None:
+    """
+    Send empty data to other peer, to show that there is no data here to be shared.
+
+    :param ip: The IP that is being reported
+    :param recipient: The peer that should receive the report. Use "*" wildcard to broadcast to everyone
+    :return: None
+    """
+
+    message_raw = build_go_message("report", "ip", ip, "score_confidence", evaluation=None)
 
     message_json = json.dumps(message_raw)
     message_b64 = base64.b64encode(bytes(message_json, "ascii")).decode()

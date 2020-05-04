@@ -5,7 +5,7 @@ import json
 import multiprocessing
 
 from modules.p2ptrust.utils import validate_ip_address, validate_go_reports, validate_timestamp, \
-    get_ip_info_from_slips, send_evaluation_to_go
+    get_ip_info_from_slips, send_evaluation_to_go, send_empty_evaluation_to_go
 from slips.core.database import __database__
 from modules.p2ptrust.trustdb import TrustDB
 
@@ -196,8 +196,7 @@ class GoListener(multiprocessing.Process):
         if score is not None:
             send_evaluation_to_go(key, score, confidence, reporter)
         else:
-            # TODO: perhaps tell the peer "sorry, I don't know"?
-            pass
+            send_empty_evaluation_to_go(key, reporter)
 
     def process_message_report(self, reporter: str, report_time: int, data: dict):
         """
@@ -256,6 +255,10 @@ class GoListener(multiprocessing.Process):
         :param evaluation: Dictionary containing score and confidence values
         :return: None, data is saved to the database
         """
+
+        if evaluation is None:
+            print("Peer has no data to share")
+            return
 
         # check that both fields are present
         try:

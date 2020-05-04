@@ -211,6 +211,14 @@ wrong_message_confidence_out_of_range = '[{' \
                                         '    "message": "' + __b64m.decode() + '"' \
                                                                                '  }]'
 
+__message = b'{"message_type": "report", "key_type": "ip", "key": "1.2.3.7", "evaluation_type": "score_confidence", "evaluation":  null}'
+__b64m = __b64.b64encode(__message)
+ok_empty_report = '[{' \
+                                        '    "reporter": "abcsakughroiauqrghaui",' \
+                                        '    "report_time": 154900000,' \
+                                        '    "message": "' + __b64m.decode() + '"' \
+                                                                               '  }]'
+
 __message = b'{"message_type": "request", "key_type": "ip", "key": "1.2.3.4", "evaluation_type": "score_confidence"}'
 __b64m = __b64.b64encode(__message)
 ok_request = '[{' \

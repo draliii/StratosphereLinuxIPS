@@ -100,6 +100,12 @@ def test_slips_integration():
     time.sleep(1)
     print()
 
+    print("Network shares empty detection about IP 1.2.3.7")
+    data = json_data.ok_empty_report
+    __database__.publish("p2p_gopy", "GO_DATA %s" % data)
+    time.sleep(1)
+    print()
+
     print("Slips asks about data for 1.2.3.5")
     # slips asks for data about 1.2.3.5
     __database__.publish("p2p_data_request", "1.2.3.5 1000")
