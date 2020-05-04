@@ -36,19 +36,28 @@ def test_slips_integration():
     module_process = init_tests()
 
     # add a new peer abcsakughroiauqrghaui on IP 192.168.0.4
-    module_process.sqlite_db.insert_go_score("abcsakughroiauqrghaui", 1, 0)
-    module_process.sqlite_db.insert_go_ip_pairing("abcsakughroiauqrghaui", "192.168.0.4", 1) #B
+    __database__.publish("p2p_gopy", "PEER_UPDATE %s" % '{"peerid": "abcsakughroiauqrghaui",'
+                                                        ' "ip": "192.168.0.4",'
+                                                        ' "reliability": 1,'
+                                                        ' "timestamp": 0}')
+    # module_process.sqlite_db.insert_go_score("abcsakughroiauqrghaui", 1, 0)
+    # module_process.sqlite_db.insert_go_ip_pairing("abcsakughroiauqrghaui", "192.168.0.4", 1) #B
     set_ip_data("192.168.0.4", {"score": 0.1, "confidence": 1})
 
     # add a new peer anotherreporterspeerid on IP 192.168.0.5
-    module_process.sqlite_db.insert_go_score("anotherreporterspeerid", 0.8, 0)
-    module_process.sqlite_db.insert_go_ip_pairing("anotherreporterspeerid", "192.168.0.5", 1) #C
+    __database__.publish("p2p_gopy", "PEER_UPDATE %s" % '{"peerid": "anotherreporterspeerid",'
+                                                        ' "ip": "192.168.0.5",'
+                                                        ' "timestamp": 0}')
+    __database__.publish("p2p_gopy", "PEER_UPDATE %s" % '{"peerid": "anotherreporterspeerid",'
+                                                        ' "reliability": 0.8,'
+                                                        ' "timestamp": 0}')
+    # module_process.sqlite_db.insert_go_score("anotherreporterspeerid", 0.8, 0)
+    # module_process.sqlite_db.insert_go_ip_pairing("anotherreporterspeerid", "192.168.0.5", 1) #C
     set_ip_data("192.168.0.5", {"score": 0.1, "confidence": 1})
 
     # network asks for data about 1.2.3.4
     data = json_data.ok_request
     __database__.publish("p2p_gopy", "GO_DATA %s" % data)
-    time.sleep(100000)
     print()
 
     # slips makes some detections
@@ -79,6 +88,8 @@ def test_slips_integration():
     # shutdown
     __database__.publish("p2p_data_request", "stop_process")
     print()
+
+    # TODO: it seems that more answers are printed here than is needed, check it
 
 
 def test_inputs():

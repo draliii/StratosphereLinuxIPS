@@ -62,6 +62,10 @@ class GoListener(multiprocessing.Process):
                 self.process_go_data(parameters)
                 continue
 
+            if command == "peer_update":
+                self.process_go_update(parameters)
+                continue
+
             print("Invalid command: ", data)
 
     def process_go_data(self, parameters: str) -> None:
@@ -292,3 +296,47 @@ class GoListener(multiprocessing.Process):
             reporter, report_time, key, key_type, score, confidence)
         print(result)
         pass
+
+    def process_go_update(self, parameters):
+        try:
+            data = json.loads(parameters)
+        except json.decoder.JSONDecodeError:
+            print("Go sent invalid json")
+            return
+
+        try:
+            peerid = data["peerid"]
+        except KeyError:
+            print("Peerid missing")
+            return
+
+        # timestamp is optional. If it is not provided (or is wrong), it is set to None, and None timestamp is replaced
+        # with current time in the database
+        try:
+            timestamp = data["timestamp"]
+            timestamp, success = validate_timestamp(timestamp)
+            if not success:
+                print("Timestamp is invalid")
+                timestamp = None
+        except KeyError:
+            print("Timestamp is missing")
+            timestamp = None
+
+        try:
+            reliability = data["reliability"]
+            reliability = float(reliability)
+            self.trustdb.insert_go_score(peerid, reliability, timestamp=timestamp)
+        except KeyError:
+            print("Reliability missing")
+        except ValueError:
+            print("Reliability is not a float")
+
+        try:
+            ip_address = data["ip"]
+            if not validate_ip_address(ip_address):
+                print("IP address is invalid")
+                return
+            self.trustdb.insert_go_ip_pairing(peerid, ip_address, timestamp=timestamp)
+        except KeyError:
+            print("IP address missing")
+            return

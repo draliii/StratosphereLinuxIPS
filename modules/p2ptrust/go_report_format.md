@@ -41,6 +41,9 @@ When the reliability of a peer changes, the go layer should notify the Python la
 of the peer in question. The update message can be used to update reliability as well as IP address of the peer. At
 least one of the parameters `ip` and `reliability` should be provided.
 
+Unlike go data, peer updates are expected to be sent separately, therefore a the dictionary type is required instead of
+a list.
+
 ```json
 {
   "peerid": "QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N",
