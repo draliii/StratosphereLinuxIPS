@@ -186,8 +186,10 @@ class Trust(Module, multiprocessing.Process):
             # data saved in local db have wrong structure, this is an invalid state
             return
 
-        if not data_already_reported:
-            send_evaluation_to_go(ip_address, score, confidence, "*")
+        # TODO: in the future, be smarter and share only when needed. For now, we will always share
+        # if not data_already_reported:
+        #     send_evaluation_to_go(ip_address, score, confidence, "*")
+        send_evaluation_to_go(ip_address, score, confidence, "*")
 
         # TODO: discuss - based on what criteria should we start blaming?
         if score > 0.8 and confidence > 0.6:
