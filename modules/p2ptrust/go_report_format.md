@@ -1,27 +1,60 @@
-# Communication python -> go -> go -> python
+# Communication between python and go parts of the implementation
 
-## Outer message format (added by the library, not sent between peers)
-Communication happens between the python layers. In the go layer, data is not unpacked. The received message is simply
-forwarded, with some additional information: the sender's peerid and the time the report was received (system time, 
-unix)
+The core of each peer is implemented in python. The python code collects data, shares this data with other peers
+(report), asks other peers for data (request) etc. Python code doesn't communicate with other peers directly - it relies
+on the go part of the node to do that work. The two parts of the node exchange information and instructions using redis
+channels. 
 
-The message is encoded as a base64 string, the go layer doesn't process the data at all (more on that later).
-To simplify implementation, the message should always be an array (in this case, with only one element).
+## The channel from Slips to Go `p2p_pygo`
+TODO
+
+## The channel from Go to Slips `p2p_pygo`
+
+The go library sends several types of messages to the core. The messages in the channel always start with a command,
+followed by a space and then data. The command is a string without spaces, and the data is json.
+
+### Data forwarded from other peers: `go_data`
+
+Go layer listens for data from other peers. However, it doesn't unpack the data, validate it or otherwise process it. It
+expects a string and forwards it to the node core, with some additional information: the sender's peerid and the time
+the report was received (system time, unix).
+
+The internal structure of the messages sent between peers is discussed later. For now, it is only important to recognize
+that the go messages are base64 encoded strings.
+
+To simplify implementation, the message from go layer always wraps the data in a list - this allows for sending one or
+more reports at the same time.
 
 ```json
 [
   {
-    "reporter": "abcsakughroiauqrghaui",
-    "report_time": 154900000,
+    "reporter": "abcsakughroiauqrghaui",   // the peer that sent the data
+    "report_time": 154900000,              // time of receiving the data
     "message": "ewogICAgImtleV90eXBlIjogImlwIiwKICAgICJrZXkiOiAiMS4yLjMuNDAiLAogICAgImV........jYKfQ=="
   }
 ]
 ```
 
-## Message format between peers
+## Reliability update for peers
+TODO
 
-The message is a json object, and it must contain the field `message_type`. The acceptable message types are `report`,
-`request` and `blame`. The json object is encoded to base64 for transfer.
+## IP address update for peers
+TODO
+
+# Message format between peers
+
+The message is a json object (encoded as base64), and it must contain the field `message_type`, which describes what
+kind of message should be expected. The acceptable message types are `report`, `request` and `blame`.
+
+The report always contains the key type (currently, on IP addresses are supported), and the key itself - this is the IP
+address the node is reporting about. Then, the Evaluation object follows, this aims to allow for easier expansion later
+on. Nodes advertise the Evaluation type with the type attribute in each message.
+
+At the time of writing this, the only supported type is `score_confidence` and there are two values shared - score and
+confidence.
+
+The nodes always report the key type - currently, only IP addresses are supported, nodes should drop any unknown key
+types. A valid report can look like this:
 
 ### Type request
 
@@ -47,103 +80,4 @@ The message is a json object, and it must contain the field `message_type`. The 
     "confidence": 0.6
   }
 }
-```
-
-
-# Report format, forwarding reports
-
-The following text is the original specs, which is wrong now. It only describes message type report, and I don't feel
-like rewriting it now.
-
-## Reports sent between nodes
-Nodes send each other reports in base64, which contains a json object. The report always contains the key type 
-(currently, on IP addresses are supported), and the key itself - this is the IP address the node is reporting about.
-Then, the Evaluation object follows, this aims to allow for easier expansion later on. Nodes advertise the Evaluation
-type with the type attribute in each message.
-
-It is worth considering moving this elsewhere, perhaps they could send it only once. But maybe it could be useful to be
-able to send different messages from one node.
-
-At the time of writing this, the only type is `score_confidence` and there are two values shared - score and confidence.
-
-The nodes always report the key type - currently, only IP addresses are supported, nodes should drop any unknown key
-types. A valid report can look like this:
-
-```json
-{
-  "key_type": "ip",
-  "key": "1.2.3.40",
-  "evaluation_type": "score_confidence",
-  "evaluation": {
-    "score": 0.9,
-    "confidence": 0.6
-  }
-}
-```
-
-For easier transfer, the message is sent as base64 encoded string:
-```
-ewogICAgImtleV90eXBlIjogImlwIiwKICAgICJrZXkiOiAiMS........jYKfQ==
-```
-
-## Go layer
-In the go layer, data is not unpacked. The received message is simply forwarded, with some additional information: the 
-sender's peerid and the time the report was received (system time, unix)
-
-A report processed by the go layer could look like this
-```json
-{
-  "reporter": "abcsakughroiauqrghaui",
-  "report_time": 154900000,
-  "message": {
-    "key_type": "ip",
-    "key": "1.2.3.40",
-    "evaluation_type": "score_confidence",
-    "evaluation": {
-      "score": 0.9,
-      "confidence": 0.6
-    }
-  }
-}
-```
-
-Remember, that the message is really a base64 string, the go layer doesn't process the data at all (more on that later).
-To simplify implementation, the message should always be an array (in this case, with only one element).
-
-```json
-[
-  {
-    "reporter": "abcsakughroiauqrghaui",
-    "report_time": 154900000,
-    "message": "ewogICAgImtleV90eXBlIjogImlwIiwKICAgICJrZXkiOiAiMS4yLjMuNDAiLAogICAgImV........jYKfQ=="
-  }
-]
-```
-
-## Multiple reports in one message
-In some cases, more reports arrive to the go layer. They are sent in an array, where each element is one report as
-described above. These are usually responses about a given IP (key) from the network, so the key in all of them is the
-same. The go layer doesn't unpack the messages to find the key, because:
-
- * it makes things a lot easier in the go layer, if it doesn't have to unpack data
- * it makes the protocol a lot more versatile - the go layer doesn't need to understand data structure, it is just there
-  to forward data. This way, if json becomes outdated and a superior format is found, the go layer doesn't have to 
-  change one bit.
-  
-The upper layers should not rely on the key to be same in all reports. Message sent to the high level processor can look
-like this:
-
-```json
-[
-  {
-    "reporter": "abcsakughroiauqrghaui",
-    "report_time": 154900000,
-    "message": "ewogICAgImtleV90eXBlIjogImlwIiwKICAgICJrZXkiOiAiMS4yLjMuNDAiLAogICAgImV........jYKfQ=="
-  },
-  {
-    "reporter": "efghkughroiauqrghxyz",
-    "report_time": 1567000300,
-    "message": "ewogICAgImtleV90eXBlIjogImlwIiwKICAgICJrZXkiOiAiMS4yLjMuNDAiLAogICAgImV........jYKfQ=="
-  }
-]
 ```
