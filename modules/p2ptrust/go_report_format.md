@@ -35,11 +35,20 @@ more reports at the same time.
 ]
 ```
 
-## Reliability update for peers
-TODO
+### Peer data update `peer_update`
 
-## IP address update for peers
-TODO
+When the reliability of a peer changes, the go layer should notify the Python layer. The update must contain the peerID
+of the peer in question. The update message can be used to update reliability as well as IP address of the peer. At
+least one of the parameters `ip` and `reliability` should be provided.
+
+```json
+{
+  "peerid": "QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N",
+  "ip": "1.2.3.40",
+  "reliability": "0.3"
+}
+```
+
 
 # Message format between peers
 
