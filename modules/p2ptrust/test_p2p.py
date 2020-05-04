@@ -35,37 +35,63 @@ def set_ip_data(ip: str, data: dict):
 def test_slips_integration():
     module_process = init_tests()
 
+    print("Add new peer on IP 192.168.0.4")
     # add a new peer abcsakughroiauqrghaui on IP 192.168.0.4
     __database__.publish("p2p_gopy", "PEER_UPDATE %s" % '{"peerid": "abcsakughroiauqrghaui",'
                                                         ' "ip": "192.168.0.4",'
                                                         ' "reliability": 1,'
                                                         ' "timestamp": 0}')
+    time.sleep(0.5)
+    print()
+
+    print("Set evaluation for IP 192.168.0.4")
     # module_process.sqlite_db.insert_go_score("abcsakughroiauqrghaui", 1, 0)
     # module_process.sqlite_db.insert_go_ip_pairing("abcsakughroiauqrghaui", "192.168.0.4", 1) #B
     set_ip_data("192.168.0.4", {"score": 0.1, "confidence": 1})
+    time.sleep(0.5)
+    print()
 
+    print("Add a new peer on IP 192.168.0.5")
     # add a new peer anotherreporterspeerid on IP 192.168.0.5
     __database__.publish("p2p_gopy", "PEER_UPDATE %s" % '{"peerid": "anotherreporterspeerid",'
                                                         ' "ip": "192.168.0.5",'
                                                         ' "timestamp": 0}')
+    time.sleep(0.5)
+    print()
+
     __database__.publish("p2p_gopy", "PEER_UPDATE %s" % '{"peerid": "anotherreporterspeerid",'
                                                         ' "reliability": 0.8,'
                                                         ' "timestamp": 0}')
+    time.sleep(0.5)
+    print()
+
+    print("Set evaluation for IP 192.168.0.5")
     # module_process.sqlite_db.insert_go_score("anotherreporterspeerid", 0.8, 0)
     # module_process.sqlite_db.insert_go_ip_pairing("anotherreporterspeerid", "192.168.0.5", 1) #C
     set_ip_data("192.168.0.5", {"score": 0.1, "confidence": 1})
+    time.sleep(0.5)
+    print()
 
     # network asks for data about 1.2.3.4
+    print("Network asks about IP 1.2.3.4 (we know nothing about it)")
     data = json_data.ok_request
     __database__.publish("p2p_gopy", "GO_DATA %s" % data)
+    time.sleep(0.5)
     print()
 
     # slips makes some detections
+    print("Slips makes a detection of IP 1.2.3.4")
     set_ip_data("1.2.3.4", {"score": 0.3, "confidence": 1})
+    time.sleep(0.5)
+    print()
+
+    print("Slips makes a detection of IP 1.2.3.6")
     set_ip_data("1.2.3.6", {"score": 0.7, "confidence": 0.7})
+    time.sleep(0.5)
     time.sleep(1)
     print()
 
+    print("Network shares detections about IP 1.2.3.40 and 1.2.3.5")
     # network shares some detections
     # {"key_type": "ip", "key": "1.2.3.40", "evaluation_type": "score_confidence", "evaluation": { "score": 0.9, "confidence": 0.6 }}
     # {"key_type": "ip", "key": "1.2.3.5", "evaluation_type": "score_confidence", "evaluation": { "score": 0.9, "confidence": 0.7 }}
@@ -74,12 +100,14 @@ def test_slips_integration():
     time.sleep(1)
     print()
 
+    print("Slips asks about data for 1.2.3.5")
     # slips asks for data about 1.2.3.5
     __database__.publish("p2p_data_request", "1.2.3.5 1000")
     time.sleep(1)
     print()
 
     # network asks for data about 1.2.3.4
+    print("Network asks about IP 1.2.3.4 (we know something now)")
     data = json_data.ok_request
     __database__.publish("p2p_gopy", "GO_DATA %s" % data)
     time.sleep(100000)

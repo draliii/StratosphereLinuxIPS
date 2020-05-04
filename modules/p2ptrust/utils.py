@@ -239,3 +239,6 @@ def send_b64_to_go(message: str, recipient: str) -> None:
     data_json = json.dumps(data_raw)
     print("[publish trust -> go]", data_json)
     __database__.publish("p2p_pygo", data_json)
+
+    decoded_data = base64.b64decode(message)
+    print("[raw published data]", decoded_data)

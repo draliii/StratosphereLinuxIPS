@@ -42,15 +42,12 @@ class GoListener(multiprocessing.Process):
             if message["type"] != "message":
                 continue
 
-            print("RM:", message)
-
             data = message['data']
 
             # separate control instruction and its parameters
             try:
                 command, parameters = data.split(" ", 1)
                 command = command.lower()
-                print("Command is:", command)
 
             # ignore the instruction, if no parameters were provided
             except ValueError:
@@ -148,8 +145,6 @@ class GoListener(multiprocessing.Process):
         except json.decoder.JSONDecodeError:
             print("Peer sent invalid json")
             return "invalid_format", {}
-
-        print("peer json ok")
 
         try:
             message_type = data["message_type"]
