@@ -292,9 +292,20 @@ class GoListener(multiprocessing.Process):
         print(result)
         pass
 
-    def process_go_update(self, parameters):
+    def process_go_update(self, message: str) -> None:
+        """
+        Handle update in peers reliability or IP address.
+
+        The message is expected to be JSON string, and it should contain data according to the specified format. It must
+        have the field `peerid`, which specifies the peer that is being updated, and then values to update: `ip` or
+        `reliability`. It is OK if only one of these is provided. Additionally, `timestamp` may be set, but is not
+        mandatory - if it is missing, current time will be used.
+        :param message: A string sent from go, should be json as specified above
+        :return: None
+        """
+
         try:
-            data = json.loads(parameters)
+            data = json.loads(message)
         except json.decoder.JSONDecodeError:
             print("Go sent invalid json")
             return
