@@ -143,7 +143,7 @@ def build_go_message(message_type: str, key_type: str, key: str, evaluation_type
         "key": key,
         "evaluation_type": evaluation_type
     }
-    if evaluation_type != "request":
+    if message_type != "request":
         message["evaluation"] = evaluation
     return message
 
