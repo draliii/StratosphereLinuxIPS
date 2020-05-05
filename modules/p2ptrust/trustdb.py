@@ -7,6 +7,7 @@ from modules.p2ptrust.printer import Printer
 class TrustDB:
     def __init__(self, db_file: str, printer: Printer, drop_tables_on_startup: bool = False):
         """ create a database connection to a SQLite database """
+
         self.printer = printer
 
         self.conn = sqlite3.connect(db_file)
@@ -93,7 +94,6 @@ class TrustDB:
         self.conn.commit()
 
     def insert_new_go_data(self, reports: list):
-        # TODO: validate reports, add timestamps
         self.conn.executemany("INSERT INTO reports "
                               "(reporter_peerid, key_type, reported_key, score, confidence, update_time) "
                               "VALUES (?, ?, ?, ?, ?, ?)", reports)

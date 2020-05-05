@@ -5,7 +5,7 @@ import json
 
 from slips.core.database import __database__
 
-# TODO: add outputqueue printing to this file (or remove all prints, they are debug anyway)
+# TODO: add outputQueue printing to this file (or remove all prints, they are debug anyway)
 
 
 #

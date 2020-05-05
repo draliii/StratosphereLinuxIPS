@@ -195,7 +195,7 @@ class Trust(Module, multiprocessing.Process):
         # make sure that IP address is valid and cache age is a valid timestamp from the past
         ip_address, cache_age = validate_slips_data(message_data)
         if ip_address is None:
-            # TODO: send error notice to the channel?
+            # IP address is not valid, aborting
             return
 
         # if data is in cache and is recent enough, nothing happens and Slips should just check the database
