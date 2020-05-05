@@ -35,7 +35,6 @@ def set_ip_data(ip: str, data: dict):
 
 
 def test_slips_integration():
-    module_process = init_tests()
 
     print("Add new peer on IP 192.168.0.4")
     # add a new peer abcsakughroiauqrghaui on IP 192.168.0.4
@@ -127,7 +126,6 @@ def test_slips_integration():
 
 
 def test_ip_info_changed():
-    init_tests()
 
     # TODO: wait until __database__.setInfoForIPs is fixed and then test if my module reacts correctly
     print("Slips makes 5 repeating detections, but module is stupid and shares them all")
@@ -140,7 +138,6 @@ def test_ip_info_changed():
 
 
 def test_ip_data_save_to_redis():
-    init_tests()
 
     print("Data in slips for ip 1.2.3.4")
     print(__database__.getIPData("1.2.3.4"))
@@ -153,8 +150,6 @@ def test_ip_data_save_to_redis():
 
 
 def test_inputs():
-
-    module_process = init_tests()
 
     for test_case_name, test_case in json_data.__dict__.items():
         if test_case_name.startswith("_"):
@@ -203,8 +198,6 @@ def slips_listener_test():
     """
     print("Running slips listener test")
 
-    module_process = init_tests()
-
     # invalid command
     __database__.publish("p2p_gopy", "foooooooooo")
     __database__.publish("p2p_gopy", "")
@@ -231,9 +224,6 @@ def slips_listener_test():
 
 
 def test_handle_slips_update():
-    # TODO: move init tests to __main__
-    init_tests()
-
     print("Slips asks about data for 1.2.3.5")
     # slips asks for data about 1.2.3.5
     __database__.publish("p2p_data_request", "1.2.3.5 1000")
@@ -243,6 +233,9 @@ def test_handle_slips_update():
 
 if __name__ == "__main__":
     t = time.time()
+
+    init_tests()
+
     # test_ip_info_changed()
     # test_inputs()
     # test_slips_integration()
