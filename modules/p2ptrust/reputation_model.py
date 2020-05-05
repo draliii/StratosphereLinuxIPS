@@ -45,17 +45,17 @@ class ReputationModel:
         self.trustdb.update_cached_network_opinion("ip", ipaddr, combined_score, combined_confidence, network_score)
         return combined_score, combined_confidence, network_score
 
-    def compute_peer_reputation(self, trust: float, score: float, confidence: float) -> float:
+    def compute_peer_reputation(self, reliability: float, score: float, confidence: float) -> float:
         """
         Compute the opinion value from a peer by multiplying his report data and his reputation
 
-        :param trust: trust value for the peer, obtained from the go level
+        :param reliability: trust value for the peer, obtained from the go level
         :param score: score by slips for the peer's IP address
         :param confidence: confidence by slips for the peer's IP address
         :return: The trust we should put in the report given by this peer
         """
 
-        return trust * score * confidence
+        return reliability * score * confidence
 
     def normalize_peer_reputations(self, peers: list) -> (float, float, list):
         """
@@ -82,8 +82,8 @@ class ReputationModel:
         Assemble reports given by all peers and compute the overall network opinion.
 
         The opinion is computed by using data from the database, which is a list of values: [report_score,
-        report_confidence, reporter_trust, reporter_score, reporter_confidence]. The reputation value for a peer is
-        computed, then normalized across all peers, and the reports are multiplied by this value. The average peer
+        report_confidence, reporter_reliability, reporter_score, reporter_confidence]. The reputation value for a peer
+        is computed, then normalized across all peers, and the reports are multiplied by this value. The average peer
         reputation, final score and final confidence is returned
 
         :param data: a list of peers and their reports, in the format given by TrustDB.get_opinion_on_ip()
@@ -95,9 +95,9 @@ class ReputationModel:
 
         for peer_report in data:
             # TODO: the following line crashes
-            report_score, report_confidence, reporter_trust, reporter_score, reporter_confidence = peer_report
+            report_score, report_confidence, reporter_reliability, reporter_score, reporter_confidence = peer_report
             reports.append((report_score, report_confidence))
-            reporters.append(self.compute_peer_reputation(reporter_trust, reporter_score, reporter_confidence))
+            reporters.append(self.compute_peer_reputation(reporter_reliability, reporter_score, reporter_confidence))
 
         report_sum, report_avg, weighted_reporters = self.normalize_peer_reputations(reporters)
 

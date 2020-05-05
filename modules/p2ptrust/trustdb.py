@@ -33,10 +33,10 @@ class TrustDB:
                           "confidence REAL NOT NULL, "
                           "update_time REAL NOT NULL);")
 
-        self.conn.execute("CREATE TABLE IF NOT EXISTS go_trust ("
+        self.conn.execute("CREATE TABLE IF NOT EXISTS go_reliability ("
                           "id INTEGER PRIMARY KEY NOT NULL, "
                           "peerid TEXT NOT NULL, "
-                          "trust REAL NOT NULL, "
+                          "reliability REAL NOT NULL, "
                           "update_time REAL NOT NULL);")
 
         self.conn.execute("CREATE TABLE IF NOT EXISTS peer_ips ("
@@ -65,7 +65,7 @@ class TrustDB:
     def delete_tables(self):
         self.conn.execute("DROP TABLE IF EXISTS opinion_cache;")
         self.conn.execute("DROP TABLE IF EXISTS slips_reputation;")
-        self.conn.execute("DROP TABLE IF EXISTS go_trust;")
+        self.conn.execute("DROP TABLE IF EXISTS go_reliability;")
         self.conn.execute("DROP TABLE IF EXISTS peer_ips;")
         self.conn.execute("DROP TABLE IF EXISTS reports;")
 
@@ -77,11 +77,11 @@ class TrustDB:
                           "VALUES (?, ?, ?, ?);", parameters)
         self.conn.commit()
 
-    def insert_go_score(self, peerid: str, trust: float, timestamp: int = None):
+    def insert_go_score(self, peerid: str, reliability: float, timestamp: int = None):
         if timestamp is None:
             timestamp = datetime.datetime.now()
-        parameters = (peerid, trust, timestamp)
-        self.conn.execute("INSERT INTO go_trust (peerid, trust, update_time) "
+        parameters = (peerid, reliability, timestamp)
+        self.conn.execute("INSERT INTO go_reliability (peerid, reliability, update_time) "
                           "VALUES (?, ?, ?);", parameters)
         self.conn.commit()
 
