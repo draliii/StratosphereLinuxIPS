@@ -1,3 +1,36 @@
+# Data saved to Slips
+
+Slips database expects a dictionary of data. The data from this module has the following format: 
+
+```json
+{
+  "p2p4slips": [
+    {
+      "ip": "1.2.3.4",
+      "score": 0.9,
+      "confidence": 0.6,
+      "network_score": 0.9
+    },
+    {
+      "ip": "1.2.3.5",
+      "score": 0.5,
+      "confidence": 0.5,
+      "network_score": 0.6
+    },
+    {
+      "ip": "1.2.3.7",
+      "score": 0.3,
+      "confidence": 0.9,
+      "network_score": 0.4
+    }
+  ]
+}
+```
+
+The `p2p4slips` field in the database will contain a list of all reports from the network. Each report will have the IP
+address that is reported, the computed score and confidence, and an additional value with score of all the peers that
+gave the opinion. 
+
 # Communication between python and go parts of the implementation
 
 The core of each peer is implemented in python. The python code collects data, shares this data with other peers
