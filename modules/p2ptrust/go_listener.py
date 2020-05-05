@@ -22,12 +22,12 @@ class GoListener(multiprocessing.Process):
     def __init__(self, printer: Printer, trustdb: TrustDB, config: configparser.ConfigParser):
         super().__init__()
 
-        print("Starting go listener")
-
-        # TODO: add proper OutputProcess printing
         self.printer = printer
         self.trustdb = trustdb
         self.config = config
+
+        self.print("Starting go listener")
+
         self.rdb_channel = __database__.r.pubsub()
         self.rdb_channel.subscribe('p2p_gopy')
 
@@ -57,7 +57,7 @@ class GoListener(multiprocessing.Process):
             # ignore the instruction, if no parameters were provided
             except ValueError:
                 # TODO: lower reputation
-                print("Invalid command: ", data)
+                self.print("Invalid command: ", data)
                 continue
 
             if command == "go_data":
@@ -68,7 +68,7 @@ class GoListener(multiprocessing.Process):
                 self.process_go_update(parameters)
                 continue
 
-            print("Invalid command: ", data)
+            self.print("Invalid command: ", data)
 
     def process_go_data(self, parameters: str) -> None:
         """Process data sent by the go layer
@@ -81,7 +81,7 @@ class GoListener(multiprocessing.Process):
         # if there were any issues, the reports list will be empty
         reports = validate_go_reports(parameters)
         if len(reports) == 0:
-            print("Data list is empty")
+            self.print("Data list is empty")
             return
 
         for report in reports:
@@ -96,13 +96,13 @@ class GoListener(multiprocessing.Process):
             # if the overlap of the two sets is smaller than the set of keys, some keys are missing. The & operator
             # picks the items that are present in both sets: {2, 4, 6, 8, 10, 12} & {3, 6, 9, 12, 15} = {3, 12}
             if len(expected_keys & set(report.keys())) != 3:
-                print("Some key is missing in report")
+                self.print("Some key is missing in report")
                 return
 
             report_time, success = validate_timestamp(report[key_report_time])
 
             if not success:
-                print("Invalid timestamp")
+                self.print("Invalid timestamp")
                 return
 
             reporter = report[key_reporter]
@@ -117,11 +117,11 @@ class GoListener(multiprocessing.Process):
                 self.process_message_request(reporter, report_time, data)
 
             elif message_type == "blame":
-                print("blame is not implemented yet")
+                self.print("blame is not implemented yet")
 
             else:
                 # TODO: lower reputation
-                print("Peer sent unknown message type")
+                self.print("Peer sent unknown message type")
                 return
 
     def validate_message(self, message: str) -> (str, dict):
@@ -140,21 +140,21 @@ class GoListener(multiprocessing.Process):
         try:
             decoded = base64.b64decode(message)
         except binascii.Error:
-            print("base64 cannot be parsed properly")
+            self.print("base64 cannot be parsed properly")
             return "invalid_format", {}
 
         # validate json
-        print(decoded)
+        self.print(decoded.decode("utf-8"))
         try:
             data = json.loads(decoded)
         except json.decoder.JSONDecodeError:
-            print("Peer sent invalid json")
+            self.print("Peer sent invalid json")
             return "invalid_format", {}
 
         try:
             message_type = data["message_type"]
         except KeyError:
-            print("Peer didn't specify message type")
+            self.print("Peer didn't specify message type")
             return "invalid_format", {}
 
         return message_type, data
@@ -178,23 +178,23 @@ class GoListener(multiprocessing.Process):
             key_type = data["key_type"]
             evaluation_type = data["evaluation_type"]
         except KeyError:
-            print("Correct keys are missing in the message")
+            self.print("Correct keys are missing in the message")
             # TODO: lower reputation
             return
 
         # validate keytype and key
         if key_type != "ip":
-            print("Module can't process given key type")
+            self.print("Module can't process given key type")
             return
 
         if not self.key_type_processors[key_type](key):
-            print("Provided key isn't a valid value for it's type")
+            self.print("Provided key isn't a valid value for it's type")
             # TODO: lower reputation
             return
 
         # validate evaluation type
         if evaluation_type != "score_confidence":
-            print("Module can't process given evaluation type")
+            self.print("Module can't process given evaluation type")
             return
 
         score, confidence = get_ip_info_from_slips(key)
@@ -222,23 +222,23 @@ class GoListener(multiprocessing.Process):
             evaluation_type = data["evaluation_type"]
             evaluation = data["evaluation"]
         except KeyError:
-            print("Correct keys are missing in the message")
+            self.print("Correct keys are missing in the message")
             # TODO: lower reputation
             return
 
         # validate keytype and key
         if key_type not in self.key_type_processors:
-            print("Module can't process given key type")
+            self.print("Module can't process given key type")
             return
 
         if not self.key_type_processors[key_type](key):
-            print("Provided key isn't a valid value for it's type")
+            self.print("Provided key isn't a valid value for it's type")
             # TODO: lower reputation
             return
 
         # validate evaluation type
         if evaluation_type not in self.evaluation_processors:
-            print("Module can't process given evaluation type")
+            self.print("Module can't process given evaluation type")
             return
 
         self.evaluation_processors[evaluation_type](reporter, report_time, key_type, key, evaluation)
@@ -262,11 +262,11 @@ class GoListener(multiprocessing.Process):
         """
 
         if evaluation is None:
-            print("Peer has no data to share")
+            self.print("Peer has no data to share")
             return
 
         if type(evaluation) != dict:
-            print("Evaluation is not a dictionary")
+            self.print("Evaluation is not a dictionary")
             # TODO: lower reputation
             return
 
@@ -275,7 +275,7 @@ class GoListener(multiprocessing.Process):
             score = evaluation["score"]
             confidence = evaluation["confidence"]
         except KeyError:
-            print("Score or confidence are missing")
+            self.print("Score or confidence are missing")
             # TODO: lower reputation
             return
 
@@ -284,25 +284,25 @@ class GoListener(multiprocessing.Process):
             score = float(score)
             confidence = float(confidence)
         except ValueError:
-            print("Score or confidence have wrong data type")
+            self.print("Score or confidence have wrong data type")
             # TODO: lower reputation
             return
 
         # validate value ranges (must be from <0, 1>)
         if score < 0 or score > 1:
-            print("Score value is out of bounds")
+            self.print("Score value is out of bounds")
             # TODO: lower reputation
             return
 
         if confidence < 0 or confidence > 1:
-            print("Confidence value is out of bounds")
+            self.print("Confidence value is out of bounds")
             # TODO: lower reputation
             return
 
         self.trustdb.insert_new_go_report(reporter, key_type, key, score, confidence, report_time)
         result = "Data processing ok: reporter {}, report time {}, key {} ({}), score {}, confidence {}".format(
             reporter, report_time, key, key_type, score, confidence)
-        print(result)
+        self.print(result)
         pass
 
     def process_go_update(self, message: str) -> None:
@@ -320,13 +320,13 @@ class GoListener(multiprocessing.Process):
         try:
             data = json.loads(message)
         except json.decoder.JSONDecodeError:
-            print("Go sent invalid json")
+            self.print("Go sent invalid json")
             return
 
         try:
             peerid = data["peerid"]
         except KeyError:
-            print("Peerid missing")
+            self.print("Peerid missing")
             return
 
         # timestamp is optional. If it is not provided (or is wrong), it is set to None, and None timestamp is replaced
@@ -335,10 +335,10 @@ class GoListener(multiprocessing.Process):
             timestamp = data["timestamp"]
             timestamp, success = validate_timestamp(timestamp)
             if not success:
-                print("Timestamp is invalid")
+                self.print("Timestamp is invalid")
                 timestamp = None
         except KeyError:
-            print("Timestamp is missing")
+            self.print("Timestamp is missing")
             timestamp = None
 
         try:
@@ -346,16 +346,16 @@ class GoListener(multiprocessing.Process):
             reliability = float(reliability)
             self.trustdb.insert_go_score(peerid, reliability, timestamp=timestamp)
         except KeyError:
-            print("Reliability missing")
+            self.print("Reliability missing")
         except ValueError:
-            print("Reliability is not a float")
+            self.print("Reliability is not a float")
 
         try:
             ip_address = data["ip"]
             if not validate_ip_address(ip_address):
-                print("IP address is invalid")
+                self.print("IP address is invalid")
                 return
             self.trustdb.insert_go_ip_pairing(peerid, ip_address, timestamp=timestamp)
         except KeyError:
-            print("IP address missing")
+            self.print("IP address missing")
             return

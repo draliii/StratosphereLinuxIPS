@@ -11,13 +11,12 @@ class TrustDB:
 
         self.conn = sqlite3.connect(db_file)
         if drop_tables_on_startup:
-            print("Dropping tables")
+            self.print("Dropping tables")
             self.delete_tables()
 
         self.create_tables()
         # self.insert_slips_score("8.8.8.8", 0.0, 0.9)
         self.get_opinion_on_ip("zzz")
-        print(sqlite3.version)
 
     def __del__(self):
         self.conn.close()
@@ -184,7 +183,7 @@ class TrustDB:
                                                      ";", parameters_dict)
             data = slips_reputation_cur.fetchone()
             if data is None:
-                print("No slips reputation data for ", parameters_dict)
+                self.print("No slips reputation data for " + str(parameters_dict))
                 continue
             _, _, _, _, _, reporter_score, reporter_confidence, reputation_update_time = data
             # TODO: the code further on expects the reporter trust value, replace the temporary 1

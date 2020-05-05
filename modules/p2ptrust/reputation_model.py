@@ -16,7 +16,6 @@ class ReputationModel:
 
     # TODO: this should be made into an interface, so different models can be easily switched.
     def __init__(self, printer: Printer, trustdb: TrustDB, config: configparser.ConfigParser):
-        # TODO: add proper OutputProcess printing
         self.printer = printer
         self.trustdb = trustdb
         self.config = config
