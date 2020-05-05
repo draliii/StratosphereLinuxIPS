@@ -2,6 +2,7 @@ import configparser
 import time
 from modules.p2ptrust.p2ptrust import Trust
 import modules.p2ptrust.json_data as json_data
+from modules.p2ptrust.utils import save_ip_report_to_db
 from slips.core.database import __database__
 from multiprocessing import Queue
 from outputProcess import OutputProcess
@@ -28,6 +29,7 @@ def init_tests():
 
 
 def set_ip_data(ip: str, data: dict):
+    # TODO: remove the first call after database is fixed
     __database__.setNewIP(ip)
     __database__.setInfoForIPs(ip, data)
 
@@ -137,6 +139,19 @@ def test_ip_info_changed():
     time.sleep(100000)
 
 
+def test_ip_data_save_to_redis():
+    init_tests()
+
+    print("Data in slips for ip 1.2.3.4")
+    print(__database__.getIPData("1.2.3.4"))
+
+    print("Update data")
+    save_ip_report_to_db("1.2.3.4", 1, 0.4, 0.4)
+
+    print("Data in slips for ip 1.2.3.4")
+    print(__database__.getIPData("1.2.3.4"))
+
+
 def test_inputs():
 
     module_process = init_tests()
@@ -217,8 +232,10 @@ def slips_listener_test():
 
 if __name__ == "__main__":
     t = time.time()
-    test_ip_info_changed()
+    # test_ip_info_changed()
     # test_inputs()
     # test_slips_integration()
+
+    test_ip_data_save_to_redis()
 
     print(time.time() - t)

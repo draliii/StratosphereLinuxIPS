@@ -74,7 +74,7 @@ def validate_go_reports(data: str) -> list:
 
 
 #
-# READ DATA FROM REDIS
+# READ DATA FROM REDIS, WRITE DATA TO REDIS
 #
 
 def get_ip_info_from_slips(ip_address: str) -> (float, float):
@@ -118,6 +118,18 @@ def read_data_from_ip_info(ip_info: dict) -> (float, float):
         return float(score), float(confidence)
     except KeyError:
         return None, None
+
+
+def save_ip_report_to_db(ip, score, confidence, network_trust):
+    # TODO: because of bugs in the database, I can only save this once.
+
+    timestamp = time.time()
+    report_data = {"score": score, "confidence": confidence, "network_score": network_trust, "timestamp": timestamp}
+    wrapped_data = {"p2p4slips": report_data}
+
+    # TODO: remove the first call after database is fixed
+    __database__.setNewIP(ip)
+    __database__.setInfoForIPs(ip, wrapped_data)
 
 
 #
