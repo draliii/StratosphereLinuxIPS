@@ -119,34 +119,22 @@ def test_slips_integration():
     time.sleep(1)
     print()
 
-    print("Slips makes 5 repeating detections, but module is stupid and shares them all")
-    # TODO: at least that was the idea. In reality, ip_info_changed is not updated
-    set_ip_data("1.2.3.6", {"score": 0.71, "confidence": 0.7})
-    set_ip_data("1.2.3.6", {"score": 0.7, "confidence": 0.7})
-    set_ip_data("1.2.3.6", {"score": 0.71, "confidence": 0.7})
-    set_ip_data("1.2.3.6", {"score": 0.7, "confidence": 0.7})
-    set_ip_data("1.2.3.6", {"score": 0.71, "confidence": 0.7})
-    time.sleep(100000)
-
     # shutdown
     __database__.publish("p2p_data_request", "stop_process")
     print()
 
-    # TODO: it seems that more answers are printed here than is needed, check it
 
 def test_ip_info_changed():
     init_tests()
 
+    # TODO: wait until __database__.setInfoForIPs is fixed and then test if my module reacts correctly
     print("Slips makes 5 repeating detections, but module is stupid and shares them all")
-    # TODO: at least that was the idea. In reality, ip_info_changed is not updated
     set_ip_data("1.2.3.6", {"score": 0.71, "confidence": 0.7})
     set_ip_data("1.2.3.6", {"score": 0.7, "confidence": 0.7})
     set_ip_data("1.2.3.6", {"score": 0.71, "confidence": 0.7})
     set_ip_data("1.2.3.6", {"score": 0.7, "confidence": 0.7})
     set_ip_data("1.2.3.6", {"score": 0.71, "confidence": 0.7})
     time.sleep(100000)
-
-    #TODO: yes, database doesn't allow overwriting. Decide what to do about it tomorrow.
 
 
 def test_inputs():
