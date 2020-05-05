@@ -7,7 +7,7 @@ from slips.core.database import __database__
 from modules.p2ptrust.go_listener import GoListener
 from modules.p2ptrust.reputation_model import ReputationModel
 from modules.p2ptrust.utils import get_ip_info_from_slips, validate_ip_address, send_evaluation_to_go, \
-    send_blame_to_go, send_request_to_go
+    send_blame_to_go, send_request_to_go, save_ip_report_to_db
 from slips.common.abstracts import Module
 
 
@@ -130,22 +130,6 @@ class Trust(Module, multiprocessing.Process):
             self.print(str(inst), 0, 1)
             return True
 
-    def send_to_slips(self, message: str) -> None:
-        """
-        Send message to Slips
-
-        A function to send a string message to the p2p_data_request channel, on which slips communicates. This will be
-        probably removed in later versions, as the result should be instead saved as part of IP data
-        :param message:
-        :return:
-        """
-
-        # TODO: save new results as part of IP data instead of communicating with slips (who is listening, anyway?)
-        # an interesting issue here is that UPDATE message is sent every time after IP data is modified - but we don't
-        # want to react to our own update - this could be solved by some kind of timeout in the update listener
-
-        print("[publish trust -> slips]", message)
-        __database__.publish("p2p_data_request", message)
 
     def handle_update(self, ip_address: str) -> None:
         """
@@ -211,28 +195,26 @@ class Trust(Module, multiprocessing.Process):
             network_trust: float
 
         This method will check if any data not older than `cache_age` is saved in cache. If yes, this data is returned.
-        If not, the database is checked. An ASK query is sent to the network and responses are collected and sent to the
-        `p2p_data_response` channel.
+        If not, the database is checked. An ASK query is sent to the network and responses are collected and saved into
+        the redis database.
 
         :param message_data: The data received from the redis channel `p2p_data_response`
-        :return: None, the result is sent via a channel
+        :return: None, the result is saved into the redis database under key `p2p4slips`
         """
 
-        # TODO: modify this to write data as IPinfo to the redis, not to a channel
-
+        # make sure that IP address is valid and cache age is a valid timestamp from the past
         ip_address, cache_age = validate_slips_data(message_data)
         if ip_address is None:
             # TODO: send error notice to the channel?
             return
 
-        # if data is in cache and is recent enough, it is returned from cache
-        try:
-            score, confidence, network_score, timestamp = self.sqlite_db.get_cached_network_opinion("ip", ip_address)
-            if score is not None and time.time() - timestamp < cache_age:
-                self.send_to_slips(ip_address + " " + score + " " + confidence + " " + network_score)
-                return
-        except KeyError:
-            pass
+        # if data is in cache and is recent enough, nothing happens and Slips should just check the database
+        score, confidence, network_score, timestamp = self.sqlite_db.get_cached_network_opinion("ip", ip_address)
+        if score is not None and time.time() - timestamp < cache_age:
+            # cached value is ok, do nothing
+            return
+
+        # if cached value is old, ask the peers
 
         # TODO: in some cases, it is not necessary to wait, specify that and implement it
         #       I do not remember writing this comment. I have no idea in which cases there is no need to wait? Maybe
@@ -248,8 +230,7 @@ class Trust(Module, multiprocessing.Process):
 
         # no data in db - this happens when testing, if there is not enough data on peers
         if combined_score is None:
-            message = "None :("
+            print("No data received from network :(")
         else:
-            message = ip_address + " " + str(combined_score) + " " + str(combined_confidence) + " " + str(network_score)
-        self.send_to_slips(message)
-        pass
+            print("Network shared some data, saving it now!")
+            save_ip_report_to_db(ip_address, combined_score, combined_confidence, network_score)

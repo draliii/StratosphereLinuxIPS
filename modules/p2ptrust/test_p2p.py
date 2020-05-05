@@ -136,7 +136,7 @@ def test_ip_info_changed():
     set_ip_data("1.2.3.6", {"score": 0.71, "confidence": 0.7})
     set_ip_data("1.2.3.6", {"score": 0.7, "confidence": 0.7})
     set_ip_data("1.2.3.6", {"score": 0.71, "confidence": 0.7})
-    time.sleep(100000)
+    time.sleep(1)
 
 
 def test_ip_data_save_to_redis():
@@ -230,12 +230,23 @@ def slips_listener_test():
     __database__.publish("p2p_gopy", "stop_process")
 
 
+def test_handle_slips_update():
+    # TODO: move init tests to __main__
+    init_tests()
+
+    print("Slips asks about data for 1.2.3.5")
+    # slips asks for data about 1.2.3.5
+    __database__.publish("p2p_data_request", "1.2.3.5 1000")
+
+    time.sleep(1)
+
+
 if __name__ == "__main__":
     t = time.time()
     # test_ip_info_changed()
     # test_inputs()
     # test_slips_integration()
-
-    test_ip_data_save_to_redis()
+    # test_ip_data_save_to_redis()
+    # test_handle_slips_update()
 
     print(time.time() - t)

@@ -120,10 +120,12 @@ def read_data_from_ip_info(ip_info: dict) -> (float, float):
         return None, None
 
 
-def save_ip_report_to_db(ip, score, confidence, network_trust):
+def save_ip_report_to_db(ip, score, confidence, network_trust, timestamp=None):
     # TODO: because of bugs in the database, I can only save this once.
 
-    timestamp = time.time()
+    if timestamp is None:
+        timestamp = time.time()
+
     report_data = {"score": score, "confidence": confidence, "network_score": network_trust, "timestamp": timestamp}
     wrapped_data = {"p2p4slips": report_data}
 
