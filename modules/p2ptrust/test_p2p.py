@@ -1,8 +1,8 @@
 import configparser
 import time
-from modules.p2ptrust.p2ptrust import Trust
 import modules.p2ptrust.json_data as json_data
 from modules.p2ptrust.utils import save_ip_report_to_db
+from modules.p2ptrust.p2ptrust import Trust
 from slips.core.database import __database__
 from multiprocessing import Queue
 from outputProcess import OutputProcess
@@ -12,7 +12,7 @@ def init_tests():
 
     config = get_default_config()
     output_process_queue = Queue()
-    output_process_thread = OutputProcess(output_process_queue, 0, 1, config)
+    output_process_thread = OutputProcess(output_process_queue, 1, 1, config)
     output_process_thread.start()
 
     # Start the DB
@@ -241,11 +241,11 @@ if __name__ == "__main__":
 
     init_tests()
 
-    test_evaluation_error()
+    # test_evaluation_error()
 
     # test_ip_info_changed()
     # test_inputs()
-    # test_slips_integration()
+    test_slips_integration()
     # test_ip_data_save_to_redis()
     # test_handle_slips_update()
 

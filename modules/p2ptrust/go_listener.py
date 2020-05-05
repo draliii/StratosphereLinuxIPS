@@ -6,6 +6,7 @@ import multiprocessing
 
 from modules.p2ptrust.utils import validate_ip_address, validate_go_reports, validate_timestamp, \
     get_ip_info_from_slips, send_evaluation_to_go, send_empty_evaluation_to_go
+from modules.p2ptrust.printer import Printer
 from slips.core.database import __database__
 from modules.p2ptrust.trustdb import TrustDB
 
@@ -18,12 +19,13 @@ class GoListener(multiprocessing.Process):
     If peer sends invalid data, his reputation is lowered.
     """
 
-    def __init__(self, trustdb: TrustDB, config: configparser.ConfigParser):
+    def __init__(self, printer: Printer, trustdb: TrustDB, config: configparser.ConfigParser):
         super().__init__()
 
         print("Starting go listener")
 
         # TODO: add proper OutputProcess printing
+        self.printer = printer
         self.trustdb = trustdb
         self.config = config
         self.rdb_channel = __database__.r.pubsub()
@@ -32,6 +34,9 @@ class GoListener(multiprocessing.Process):
         # TODO: there should be some better mechanism to add new processing functions.. Maybe load from files?
         self.evaluation_processors = {"score_confidence": self.process_evaluation_score_confidence}
         self.key_type_processors = {"ip": validate_ip_address}
+
+    def print(self, text: str, verbose: int = 1, debug: int = 0) -> None:
+        self.printer.print("[TrustDB] " + text, verbose, debug)
 
     def run(self):
         while True:

@@ -1,6 +1,7 @@
 import configparser
 from statistics import mean
 from modules.p2ptrust.trustdb import TrustDB
+from modules.p2ptrust.printer import Printer
 
 
 class ReputationModel:
@@ -14,10 +15,14 @@ class ReputationModel:
     """
 
     # TODO: this should be made into an interface, so different models can be easily switched.
-    def __init__(self, trustdb: TrustDB, config: configparser.ConfigParser):
+    def __init__(self, printer: Printer, trustdb: TrustDB, config: configparser.ConfigParser):
         # TODO: add proper OutputProcess printing
+        self.printer = printer
         self.trustdb = trustdb
         self.config = config
+
+    def print(self, text: str, verbose: int = 1, debug: int = 0) -> None:
+        self.printer.print("[TrustDB] " + text, verbose, debug)
 
     def get_opinion_on_ip(self, ipaddr: str) -> (float, float, float):
         """

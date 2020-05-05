@@ -1,14 +1,19 @@
 import sqlite3
 import datetime
 
+from modules.p2ptrust.printer import Printer
+
 
 class TrustDB:
-    def __init__(self, db_file: str, drop_tables_on_startup: bool = False):
+    def __init__(self, db_file: str, printer: Printer, drop_tables_on_startup: bool = False):
         """ create a database connection to a SQLite database """
+        self.printer = printer
+
         self.conn = sqlite3.connect(db_file)
         if drop_tables_on_startup:
             print("Dropping tables")
             self.delete_tables()
+
         self.create_tables()
         # self.insert_slips_score("8.8.8.8", 0.0, 0.9)
         self.get_opinion_on_ip("zzz")
@@ -16,6 +21,9 @@ class TrustDB:
 
     def __del__(self):
         self.conn.close()
+
+    def print(self, text: str, verbose: int = 1, debug: int = 0) -> None:
+        self.printer.print("[TrustDB] " + text, verbose, debug)
 
     def create_tables(self):
         self.conn.execute("CREATE TABLE IF NOT EXISTS slips_reputation ("

@@ -2,13 +2,15 @@ import multiprocessing
 import configparser
 import platform
 import time
-from modules.p2ptrust.trustdb import TrustDB
+
 from slips.core.database import __database__
-from modules.p2ptrust.go_listener import GoListener
-from modules.p2ptrust.reputation_model import ReputationModel
-from modules.p2ptrust.utils import get_ip_info_from_slips, validate_ip_address, send_evaluation_to_go, \
-    send_blame_to_go, send_request_to_go, save_ip_report_to_db
 from slips.common.abstracts import Module
+
+import modules.p2ptrust.trustdb as trustdb
+from modules.p2ptrust.printer import Printer
+import modules.p2ptrust.reputation_model as reputation_model
+import modules.p2ptrust.go_listener as go_listener
+import modules.p2ptrust.utils as utils
 
 
 def validate_slips_data(message_data: str) -> (str, int):
@@ -25,7 +27,7 @@ def validate_slips_data(message_data: str) -> (str, int):
         ip_address, time_since_cached = message_data.split(" ", 1)
         time_since_cached = int(time_since_cached)
 
-        if not validate_ip_address(ip_address):
+        if not utils.validate_ip_address(ip_address):
             return None, None
 
         return ip_address, time_since_cached
@@ -43,8 +45,9 @@ class Trust(Module, multiprocessing.Process):
 
     def __init__(self, output_queue: multiprocessing.Queue, config: configparser.ConfigParser):
         multiprocessing.Process.__init__(self)
-        # All the printing output should be sent to the output_queue. The output_queue is connected to another process
-        # called OutputProcess
+
+        self.printer = Printer(output_queue, self.name)
+
         self.output_queue = output_queue
         # In case you need to read the slips.conf configuration file for your own configurations
         self.config = config
@@ -54,7 +57,7 @@ class Trust(Module, multiprocessing.Process):
         # - tw_modified
         # - evidence_added
 
-        print("Starting p2ptrust")
+        self.print("Starting p2ptrust")
 
         self.pubsub = __database__.r.pubsub()
         self.pubsub.subscribe('ip_info_change')
@@ -72,27 +75,14 @@ class Trust(Module, multiprocessing.Process):
             # ??
             self.timeout = None
 
-        self.sqlite_db = TrustDB(r"trustdb.db", drop_tables_on_startup=True)
-        self.reputation_model = ReputationModel(self.sqlite_db, self.config)
+        self.trust_db = trustdb.TrustDB(r"trustdb.db", self.printer, drop_tables_on_startup=True)
+        self.reputation_model = reputation_model.ReputationModel(self.printer, self.trust_db, self.config)
 
-        self.go_listener_process = GoListener(self.sqlite_db, self.config)
+        self.go_listener_process = go_listener.GoListener(self.printer, self.trust_db, self.config)
         self.go_listener_process.start()
 
     def print(self, text: str, verbose: int = 1, debug: int = 0) -> None:
-        """ 
-        Function to use to print text using the outputqueue of slips.
-        Slips then decides how, when and where to print this text by taking all the processes into account
-
-        Input
-         verbose: is the minimum verbosity level required for this text to be printed
-         debug: is the minimum debugging level required for this text to be printed
-         text: text to print. Can include format like 'Test {}'.format('here')
-        
-        If not specified, the minimum verbosity level required is 1, and the minimum debugging level is 0
-        """
-
-        vd_text = str(int(verbose) * 10 + int(debug))
-        self.output_queue.put(vd_text + '|' + self.name + '|[' + self.name + '] ' + str(text))
+        self.printer.print(text, verbose, debug)
 
     def run(self):
         try:
@@ -107,13 +97,13 @@ class Trust(Module, multiprocessing.Process):
 
                 # listen to slips kill signal and quit
                 if data == 'stop_process':
-                    print("Received stop signal from slips, stopping")
-                    self.sqlite_db.__del__()
+                    self.print("Received stop signal from slips, stopping")
+                    self.trust_db.__del__()
                     self.go_listener_process.kill()
                     return True
 
                 if message["channel"] == "ip_info_change":
-                    print("IP info was updated in slips for ip:", data)
+                    self.print("IP info was updated in slips for ip: " + data)
                     self.handle_update(message["data"])
                     continue
 
@@ -141,24 +131,24 @@ class Trust(Module, multiprocessing.Process):
         """
 
         # abort if the IP is not valid
-        if not validate_ip_address(ip_address):
-            print("IP validation failed")
+        if not utils.validate_ip_address(ip_address):
+            self.print("IP validation failed")
             return
 
-        score, confidence = get_ip_info_from_slips(ip_address)
+        score, confidence = utils.get_ip_info_from_slips(ip_address)
         if score is None:
-            print("IP doesn't have any score/confidence values in DB")
+            self.print("IP doesn't have any score/confidence values in DB")
             return
 
         # insert data from slips to database
         # TODO: remove debug timestamps
-        self.sqlite_db.insert_slips_score(ip_address, score, confidence, timestamp=3)
+        self.trust_db.insert_slips_score(ip_address, score, confidence, timestamp=3)
 
         # TODO: discuss - only share score if confidence is high enough?
         # compare slips data with data in go
         data_already_reported = True
         try:
-            cached_opinion = self.sqlite_db.get_cached_network_opinion("ip", ip_address)
+            cached_opinion = self.trust_db.get_cached_network_opinion("ip", ip_address)
             cached_score, cached_confidence, network_score, timestamp = cached_opinion
             if cached_score is None:
                 data_already_reported = False
@@ -173,11 +163,11 @@ class Trust(Module, multiprocessing.Process):
         # TODO: in the future, be smarter and share only when needed. For now, we will always share
         # if not data_already_reported:
         #     send_evaluation_to_go(ip_address, score, confidence, "*")
-        send_evaluation_to_go(ip_address, score, confidence, "*")
+        utils.send_evaluation_to_go(ip_address, score, confidence, "*")
 
         # TODO: discuss - based on what criteria should we start blaming?
         if score > 0.8 and confidence > 0.6:
-            send_blame_to_go(ip_address, score, confidence)
+            utils.send_blame_to_go(ip_address, score, confidence)
 
     def handle_data_request(self, message_data: str) -> None:
         """
@@ -209,7 +199,7 @@ class Trust(Module, multiprocessing.Process):
             return
 
         # if data is in cache and is recent enough, nothing happens and Slips should just check the database
-        score, confidence, network_score, timestamp = self.sqlite_db.get_cached_network_opinion("ip", ip_address)
+        score, confidence, network_score, timestamp = self.trust_db.get_cached_network_opinion("ip", ip_address)
         if score is not None and time.time() - timestamp < cache_age:
             # cached value is ok, do nothing
             return
@@ -219,7 +209,7 @@ class Trust(Module, multiprocessing.Process):
         # TODO: in some cases, it is not necessary to wait, specify that and implement it
         #       I do not remember writing this comment. I have no idea in which cases there is no need to wait? Maybe
         #       when everybody responds asap?
-        send_request_to_go(ip_address)
+        utils.send_request_to_go(ip_address)
 
         # go will send a reply in no longer than 10s (or whatever the timeout there is set to). The reply will be
         # processed by an independent process in this module and database will be updated accordingly
@@ -230,7 +220,7 @@ class Trust(Module, multiprocessing.Process):
 
         # no data in db - this happens when testing, if there is not enough data on peers
         if combined_score is None:
-            print("No data received from network :(")
+            self.print("No data received from network :(")
         else:
-            print("Network shared some data, saving it now!")
-            save_ip_report_to_db(ip_address, combined_score, combined_confidence, network_score)
+            self.print("Network shared some data, saving it now!")
+            utils.save_ip_report_to_db(ip_address, combined_score, combined_confidence, network_score)
