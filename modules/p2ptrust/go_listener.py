@@ -260,9 +260,10 @@ class GoListener(multiprocessing.Process):
             print("Peer has no data to share")
             return
 
-        if type(evaluation) == list:
-            # TODO: how did we get here? This should not happen (and if it happens, should be handled)
-            k = 3
+        if type(evaluation) != dict:
+            print("Evaluation is not a dictionary")
+            # TODO: lower reputation
+            return
 
         # check that both fields are present
         try:

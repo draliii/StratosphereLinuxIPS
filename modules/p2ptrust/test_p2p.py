@@ -231,10 +231,17 @@ def test_handle_slips_update():
     time.sleep(1)
 
 
+def test_evaluation_error():
+    __database__.publish("p2p_gopy", "go_data " + json_data.wrong_message_eval_structure)
+    # __database__.publish("p2p_gopy", "go_data " + json_data.wrong_message_type)
+
+
 if __name__ == "__main__":
     t = time.time()
 
     init_tests()
+
+    test_evaluation_error()
 
     # test_ip_info_changed()
     # test_inputs()
@@ -243,3 +250,4 @@ if __name__ == "__main__":
     # test_handle_slips_update()
 
     print(time.time() - t)
+    time.sleep(10000000)
