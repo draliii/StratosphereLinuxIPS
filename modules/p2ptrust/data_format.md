@@ -24,7 +24,14 @@ on the go part of the node to do that work. The two parts of the node exchange i
 channels. 
 
 ## The channel from Slips to Go `p2p_pygo`
-TODO
+
+Slips sends data to go in json. The Json object has two fields: `message` and `recipient`. 
+
+```json
+{"message": "ewogICAgImtleV90eXBlIjogImlwIiwKICAgICJrZXkiOiAiMS4yLjMuNDAiLAogICAgImV........jYKfQ==", "recipient": "QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N"}
+```
+
+The message is the base64 encoded string that the modules are exchanging, This is not unpacked in the transporting layer. The `recipient` field is the peerID of the peer the message is sent to. Use `*` to send the message to all peers.
 
 ## The channel from Go to Slips `p2p_pygo`
 
