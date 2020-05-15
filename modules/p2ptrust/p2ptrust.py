@@ -1,6 +1,8 @@
 import multiprocessing
 import configparser
 import platform
+import signal
+import subprocess
 import time
 
 from slips.core.database import __database__
@@ -81,6 +83,9 @@ class Trust(Module, multiprocessing.Process):
         self.go_listener_process = go_listener.GoListener(self.printer, self.trust_db, self.config)
         self.go_listener_process.start()
 
+        outfile = open("outfile.test", "+w")
+        self.pigeon = subprocess.Popen(["/home/dita/ownCloud/m4.semestr/go/src/github.com/stratosphereips/p2p4slips/p2p4slips", "-port", "6668"], stdout=outfile)
+
     def print(self, text: str, verbose: int = 1, debug: int = 0) -> None:
         self.printer.print(text, verbose, debug)
 
@@ -100,6 +105,7 @@ class Trust(Module, multiprocessing.Process):
                     self.print("Received stop signal from slips, stopping")
                     self.trust_db.__del__()
                     self.go_listener_process.kill()
+                    self.pigeon.send_signal(signal.SIGINT)
                     return True
 
                 if message["channel"] == "ip_info_change":

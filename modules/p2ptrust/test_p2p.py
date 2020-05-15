@@ -245,7 +245,7 @@ if __name__ == "__main__":
 
     # test_ip_info_changed()
     # test_inputs()
-    test_slips_integration()
+    # test_slips_integration()
     # test_ip_data_save_to_redis()
     # test_handle_slips_update()
 
