@@ -8,7 +8,7 @@ from multiprocessing import Queue
 from outputProcess import OutputProcess
 
 
-def init_tests():
+def init_tests(pigeon_port=6669):
 
     config = get_default_config()
     output_process_queue = Queue()
@@ -18,7 +18,7 @@ def init_tests():
     # Start the DB
     __database__.start(config)
     __database__.setOutputQueue(output_process_queue)
-    module_process = Trust(output_process_queue, config, rename_with_port=True)
+    module_process = Trust(output_process_queue, config, rename_with_port=True, pigeon_port=pigeon_port)
 
     module_process.start()
 
@@ -236,6 +236,21 @@ def test_evaluation_error():
     # __database__.publish("p2p_gopy", "go_data " + json_data.wrong_message_type)
 
 
+def test_pigeon():
+    # one pigeon is already running at port 6669, we start a second one on 6670
+    init_tests(6670)
+
+    # one of the peers makes a detection about IP 1.2.3.4
+    # (both peers can read the same data from db, but only one is notified about it, so the other doesn't check it)
+    __database__.r.hset('IPsInfo', '1.2.3.4', '{"score":0.5, "confidence":0.8}')
+    __database__.publish('ip_info_change6669', '1.2.3.4')
+
+    # peer 6669 should read the database, then notify the other peer.
+    # The other peer should save the data in the reports table
+
+
+
+
 if __name__ == "__main__":
     t = time.time()
 
@@ -248,6 +263,7 @@ if __name__ == "__main__":
     # test_slips_integration()
     # test_ip_data_save_to_redis()
     # test_handle_slips_update()
+    test_pigeon()
 
     print(time.time() - t)
     time.sleep(10000000)
