@@ -18,7 +18,7 @@ def init_tests():
     # Start the DB
     __database__.start(config)
     __database__.setOutputQueue(output_process_queue)
-    module_process = Trust(output_process_queue, config)
+    module_process = Trust(output_process_queue, config, rename_with_port=True)
 
     module_process.start()
 

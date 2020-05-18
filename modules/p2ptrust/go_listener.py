@@ -19,7 +19,11 @@ class GoListener(multiprocessing.Process):
     If peer sends invalid data, his reputation is lowered.
     """
 
-    def __init__(self, printer: Printer, trustdb: TrustDB, config: configparser.ConfigParser):
+    def __init__(self,
+                 printer: Printer,
+                 trustdb: TrustDB,
+                 config: configparser.ConfigParser,
+                 gopy_channel: str = "p2p_gopy"):
         super().__init__()
 
         self.printer = printer
@@ -29,7 +33,7 @@ class GoListener(multiprocessing.Process):
         self.print("Starting go listener")
 
         self.rdb_channel = __database__.r.pubsub()
-        self.rdb_channel.subscribe('p2p_gopy')
+        self.rdb_channel.subscribe(gopy_channel)
 
         # TODO: there should be some better mechanism to add new processing functions.. Maybe load from files?
         self.evaluation_processors = {"score_confidence": self.process_evaluation_score_confidence}

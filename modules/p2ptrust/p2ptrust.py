@@ -45,7 +45,16 @@ class Trust(Module, multiprocessing.Process):
     description = 'Enables sharing detection data with other Slips instances'
     authors = ['Dita']
 
-    def __init__(self, output_queue: multiprocessing.Queue, config: configparser.ConfigParser):
+    def __init__(self,
+                 output_queue: multiprocessing.Queue,
+                 config: configparser.ConfigParser,
+                 pigeon_port=6668,
+                 rename_with_port=False,
+                 slips_update_channel="ip_info_change",
+                 p2p_data_request_channel="p2p_data_request",
+                 gopy_channel="p2p_gopy",
+                 pygo_channel="p2p_pygo",
+                 pigeon_logfile="pigeon_logs"):
         multiprocessing.Process.__init__(self)
 
         self.printer = Printer(output_queue, self.name)
@@ -59,11 +68,24 @@ class Trust(Module, multiprocessing.Process):
         # - tw_modified
         # - evidence_added
 
-        self.print("Starting p2ptrust")
+        self.pigeon_port = pigeon_port
+        self.rename_with_port = rename_with_port
+        self.slips_update_channel_raw = slips_update_channel
+        self.p2p_data_request_channel_raw = p2p_data_request_channel
+        self.gopy_channel_raw = gopy_channel
+        self.pygo_channel_raw = pygo_channel
+        self.pigeon_logfile_raw = pigeon_logfile
 
-        self.pubsub = __database__.r.pubsub()
-        self.pubsub.subscribe('ip_info_change')
-        self.pubsub.subscribe('p2p_data_request')
+        if self.rename_with_port:
+            str_port = str(self.pigeon_port)
+        else:
+            str_port = ""
+
+        self.slips_update_channel = self.slips_update_channel_raw + str_port
+        self.p2p_data_request_channel = self.p2p_data_request_channel_raw + str_port
+        self.gopy_channel = self.gopy_channel_raw + str_port
+        self.pygo_channel = self.pygo_channel_raw + str_port
+        self.pigeon_logfile = self.pigeon_logfile_raw + str_port
 
         # Set the timeout based on the platform. This is because the pyredis lib does not have officially recognized the
         # timeout=None as it works in only macos and timeout=-1 as it only works in linux
@@ -77,14 +99,32 @@ class Trust(Module, multiprocessing.Process):
             # ??
             self.timeout = None
 
+        self.pubsub = __database__.r.pubsub()
+        self.pubsub.subscribe(self.slips_update_channel)
+        self.pubsub.subscribe(self.p2p_data_request_channel)
+
+        # TODO: do not drop tables on startup
         self.trust_db = trustdb.TrustDB(r"trustdb.db", self.printer, drop_tables_on_startup=True)
         self.reputation_model = reputation_model.ReputationModel(self.printer, self.trust_db, self.config)
 
-        self.go_listener_process = go_listener.GoListener(self.printer, self.trust_db, self.config)
+        self.go_listener_process = go_listener.GoListener(self.printer, self.trust_db, self.config, gopy_channel=self.gopy_channel)
         self.go_listener_process.start()
 
-        outfile = open("outfile.test", "+w")
-        self.pigeon = subprocess.Popen(["/home/dita/ownCloud/m4.semestr/go/src/github.com/stratosphereips/p2p4slips/p2p4slips", "-port", "6668"], stdout=outfile)
+        outfile = open(self.pigeon_logfile, "+w")
+        executable = ["/home/dita/ownCloud/m4.semestr/go/src/github.com/stratosphereips/p2p4slips/p2p4slips"]
+        port_param = ["-port", str(self.pigeon_port)]
+        keyfile_param = ["-key-file", "fofobarbarkeys"]
+        rename_with_port_param = ["-rename-with-port", str(self.rename_with_port).lower()]
+        pygo_channel_param = ["-redis-channel-pygo", self.pygo_channel_raw]
+        gopy_channel_param = ["-redis-channel-gopy", self.gopy_channel_raw]
+
+        executable.extend(port_param)
+        executable.extend(keyfile_param)
+        executable.extend(rename_with_port_param)
+        executable.extend(pygo_channel_param)
+        executable.extend(gopy_channel_param)
+
+        self.pigeon = subprocess.Popen(executable)
 
     def print(self, text: str, verbose: int = 1, debug: int = 0) -> None:
         self.printer.print(text, verbose, debug)
