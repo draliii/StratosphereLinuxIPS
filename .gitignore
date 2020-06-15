@@ -127,6 +127,9 @@ logs/
 .idea/StratosphereLinuxIPS.iml
 dump.rdb
 
+# unrelated git repository with experiments, which has to be in the file structure for python reasons
+modules/p2ptrust/experiments/
+
 package-lock.json
 modules/blessed/node_modules/
 

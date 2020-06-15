@@ -79,7 +79,7 @@ def validate_go_reports(data: str) -> list:
 # READ DATA FROM REDIS, WRITE DATA TO REDIS
 #
 
-def get_ip_info_from_slips(ip_address: str) -> (float, float):
+def get_ip_info_from_slips(ip_address: str, storage_name: str) -> (float, float):
     """
     Get score and confidence on IP from Slips.
 
@@ -88,7 +88,7 @@ def get_ip_info_from_slips(ip_address: str) -> (float, float):
     """
 
     # poll new info from redis
-    ip_info = __database__.getIPData(ip_address)
+    ip_info = getIPData(ip_address, storage_name)
 
     # There is a bug in the database where sometimes False is returned when key is not found. Correctly, dictionary
     # should be always returned, even if it is empty. This check cannot be simplified to `if not ip_info`, because I
@@ -103,6 +103,29 @@ def get_ip_info_from_slips(ip_address: str) -> (float, float):
         return None, None
 
     return slips_score, slips_confidence
+
+
+def getIPData(ip, storage_name):
+    """
+    Return information about this IP from the IPs has
+    Returns a dictionary
+    We need to separate these three cases:
+    1- IP is in the DB without data
+    2- IP is in the DB with data
+    3- IP is not in the DB
+    """
+    data = __database__.r.hget(storage_name, ip)
+    if data or data == {}:
+        # This means the IP was in the database, with or without data
+        # Convert the data
+        data = json.loads(data)
+        #print(f'In the DB: IP {ip}, and data {data}')
+    else:
+        # The IP was not in the DB
+        data = False
+        #print(f'In the DB: IP {ip}, and data {data}')
+    # Always return a dictionary
+    return data
 
 
 # parse data from redis

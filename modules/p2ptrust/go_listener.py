@@ -343,6 +343,7 @@ class GoListener(multiprocessing.Process):
                 timestamp = None
         except KeyError:
             self.print("Timestamp is missing")
+            self.print("Data: " + message)
             timestamp = None
 
         try:

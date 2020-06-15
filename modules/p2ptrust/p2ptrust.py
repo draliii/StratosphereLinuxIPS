@@ -54,7 +54,9 @@ class Trust(Module, multiprocessing.Process):
                  p2p_data_request_channel="p2p_data_request",
                  gopy_channel="p2p_gopy",
                  pygo_channel="p2p_pygo",
-                 pigeon_logfile="pigeon_logs"):
+                 start_pigeon=True,
+                 pigeon_logfile="pigeon_logs",
+                 rename_database=True):
         multiprocessing.Process.__init__(self)
 
         self.printer = Printer(output_queue, self.name)
@@ -75,6 +77,7 @@ class Trust(Module, multiprocessing.Process):
         self.gopy_channel_raw = gopy_channel
         self.pygo_channel_raw = pygo_channel
         self.pigeon_logfile_raw = pigeon_logfile
+        self.start_pigeon = start_pigeon
 
         if self.rename_with_port:
             str_port = str(self.pigeon_port)
@@ -86,6 +89,10 @@ class Trust(Module, multiprocessing.Process):
         self.gopy_channel = self.gopy_channel_raw + str_port
         self.pygo_channel = self.pygo_channel_raw + str_port
         self.pigeon_logfile = self.pigeon_logfile_raw + str_port
+
+        self.ip_storage = "IPsInfo"
+        if rename_database:
+            self.ip_storage += str(self.pigeon_port)
 
         # Set the timeout based on the platform. This is because the pyredis lib does not have officially recognized the
         # timeout=None as it works in only macos and timeout=-1 as it only works in linux
@@ -99,6 +106,7 @@ class Trust(Module, multiprocessing.Process):
             # ??
             self.timeout = None
 
+        __database__.start(self.config)
         self.pubsub = __database__.r.pubsub()
         self.pubsub.subscribe(self.slips_update_channel)
         self.pubsub.subscribe(self.p2p_data_request_channel)
@@ -118,13 +126,14 @@ class Trust(Module, multiprocessing.Process):
         pygo_channel_param = ["-redis-channel-pygo", self.pygo_channel_raw]
         gopy_channel_param = ["-redis-channel-gopy", self.gopy_channel_raw]
 
-        executable.extend(port_param)
-        executable.extend(keyfile_param)
-        executable.extend(rename_with_port_param)
-        executable.extend(pygo_channel_param)
-        executable.extend(gopy_channel_param)
+        if self.start_pigeon:
+            executable.extend(port_param)
+            executable.extend(keyfile_param)
+            executable.extend(rename_with_port_param)
+            executable.extend(pygo_channel_param)
+            executable.extend(gopy_channel_param)
 
-        self.pigeon = subprocess.Popen(executable)
+            self.pigeon = subprocess.Popen(executable)
 
     def print(self, text: str, verbose: int = 1, debug: int = 0) -> None:
         self.printer.print(text, verbose, debug)
@@ -145,7 +154,8 @@ class Trust(Module, multiprocessing.Process):
                     self.print("Received stop signal from slips, stopping")
                     self.trust_db.__del__()
                     self.go_listener_process.kill()
-                    self.pigeon.send_signal(signal.SIGINT)
+                    if self.start_pigeon:
+                        self.pigeon.send_signal(signal.SIGINT)
                     return True
 
                 if message["channel"] == "ip_info_change":
@@ -181,7 +191,7 @@ class Trust(Module, multiprocessing.Process):
             self.print("IP validation failed")
             return
 
-        score, confidence = utils.get_ip_info_from_slips(ip_address)
+        score, confidence = utils.get_ip_info_from_slips(ip_address, self.ip_storage)
         if score is None:
             self.print("IP doesn't have any score/confidence values in DB")
             return
