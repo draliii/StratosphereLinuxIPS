@@ -56,7 +56,7 @@ class Trust(Module, multiprocessing.Process):
                  pygo_channel="p2p_pygo",
                  start_pigeon=True,
                  pigeon_logfile="pigeon_logs",
-                 rename_database=True):
+                 rename_database=False):
         multiprocessing.Process.__init__(self)
 
         self.printer = Printer(output_queue, self.name)
