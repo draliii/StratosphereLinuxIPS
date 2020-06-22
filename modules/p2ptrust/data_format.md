@@ -54,13 +54,11 @@ more reports at the same time.
 {
   "message_type": "go_data",
   "message_contents": 
-    [
-      {
-        "reporter": "abcsakughroiauqrghaui",   // the peer that sent the data
-        "report_time": 154900000,              // time of receiving the data
-        "message": "ewogICAgImtleV90eXBlIjogImlwIiwKICAgICJrZXkiOiAiMS4yLjMuNDAiLAogICAgImV........jYKfQ=="
-      }
-    ]
+    {
+      "reporter": "abcsakughroiauqrghaui",   // the peer that sent the data
+      "report_time": 154900000,              // time of receiving the data
+      "message": "ewogICAgImtleV90eXBlIjogImlwIiwKICAgICJrZXkiOiAiMS4yLjMuNDAiLAogICAgImV........jYKfQ=="
+    }
 }
 ```
 

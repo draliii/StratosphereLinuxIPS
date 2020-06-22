@@ -9,7 +9,6 @@ from outputProcess import OutputProcess
 
 
 def init_tests(pigeon_port=6669):
-
     config = get_default_config()
     output_process_queue = Queue()
     output_process_thread = OutputProcess(output_process_queue, 1, 1, config)
@@ -18,7 +17,8 @@ def init_tests(pigeon_port=6669):
     # Start the DB
     __database__.start(config)
     __database__.setOutputQueue(output_process_queue)
-    module_process = Trust(output_process_queue, config, rename_with_port=True, pigeon_port=pigeon_port, rename_sql_db_file=True)
+    module_process = Trust(output_process_queue, config, rename_with_port=False, pigeon_port=pigeon_port,
+                           rename_sql_db_file=False)
 
     module_process.start()
 
@@ -35,13 +35,10 @@ def set_ip_data(ip: str, data: dict):
 
 
 def test_slips_integration():
-
     print("Add new peer on IP 192.168.0.4")
     # add a new peer abcsakughroiauqrghaui on IP 192.168.0.4
-    __database__.publish("p2p_gopy", "PEER_UPDATE %s" % '{"peerid": "abcsakughroiauqrghaui",'
-                                                        ' "ip": "192.168.0.4",'
-                                                        ' "reliability": 1,'
-                                                        ' "timestamp": 0}')
+    __database__.publish("p2p_gopy",
+                         '{"message_type":"peer_update","message_contents":{"peerid":"abcsakughroiauqrghaui","ip":"192.168.0.4","reliability":1,"timestamp":0}}')
     time.sleep(0.5)
     print()
 
@@ -54,15 +51,12 @@ def test_slips_integration():
 
     print("Add a new peer on IP 192.168.0.5")
     # add a new peer anotherreporterspeerid on IP 192.168.0.5
-    __database__.publish("p2p_gopy", "PEER_UPDATE %s" % '{"peerid": "anotherreporterspeerid",'
-                                                        ' "ip": "192.168.0.5",'
-                                                        ' "timestamp": 0}')
+    __database__.publish("p2p_gopy",
+                         '{"message_type":"peer_update","message_contents":{"peerid":"anotherreporterspeerid","ip":"192.168.0.5","timestamp":0}}')
     time.sleep(0.5)
     print()
-
-    __database__.publish("p2p_gopy", "PEER_UPDATE %s" % '{"peerid": "anotherreporterspeerid",'
-                                                        ' "reliability": 0.8,'
-                                                        ' "timestamp": 0}')
+    __database__.publish("p2p_gopy",
+                         '{"message_type":"peer_update","message_contents":{"peerid":"anotherreporterspeerid","reliability": 0.8,"timestamp":0}}')
     time.sleep(0.5)
     print()
 
@@ -76,7 +70,7 @@ def test_slips_integration():
     # network asks for data about 1.2.3.4
     print("Network asks about IP 1.2.3.4 (we know nothing about it)")
     data = json_data.ok_request
-    __database__.publish("p2p_gopy", "GO_DATA %s" % data)
+    __database__.publish("p2p_gopy", '{"message_type":"go_data","message_contents":%s}' % data)
     time.sleep(0.5)
     print()
 
@@ -96,14 +90,18 @@ def test_slips_integration():
     # network shares some detections
     # {"key_type": "ip", "key": "1.2.3.40", "evaluation_type": "score_confidence", "evaluation": { "score": 0.9, "confidence": 0.6 }}
     # {"key_type": "ip", "key": "1.2.3.5", "evaluation_type": "score_confidence", "evaluation": { "score": 0.9, "confidence": 0.7 }}
-    data = json_data.two_correct
-    __database__.publish("p2p_gopy", "GO_DATA %s" % data)
+    data = json_data.two_correctA
+    published_data = '{"message_type":"go_data","message_contents":%s}' % data
+    __database__.publish("p2p_gopy", published_data)
+    data = json_data.two_correctB
+    published_data = '{"message_type":"go_data","message_contents":%s}' % data
+    __database__.publish("p2p_gopy", published_data)
     time.sleep(1)
     print()
 
     print("Network shares empty detection about IP 1.2.3.7")
     data = json_data.ok_empty_report
-    __database__.publish("p2p_gopy", "GO_DATA %s" % data)
+    __database__.publish("p2p_gopy", '{"message_type":"go_data","message_contents":%s}' % data)
     time.sleep(1)
     print()
 
@@ -116,7 +114,7 @@ def test_slips_integration():
     # network asks for data about 1.2.3.4
     print("Network asks about IP 1.2.3.4 (we know something now)")
     data = json_data.ok_request
-    __database__.publish("p2p_gopy", "GO_DATA %s" % data)
+    __database__.publish("p2p_gopy", '{"message_type":"go_data","message_contents":%s}' % data)
     time.sleep(1)
     print()
 
@@ -126,7 +124,6 @@ def test_slips_integration():
 
 
 def test_ip_info_changed():
-
     # TODO: wait until __database__.setInfoForIPs is fixed and then test if my module reacts correctly
     print("Slips makes 5 repeating detections, but module is stupid and shares them all")
     set_ip_data("1.2.3.6", {"score": 0.71, "confidence": 0.7})
@@ -138,7 +135,6 @@ def test_ip_info_changed():
 
 
 def test_ip_data_save_to_redis():
-
     print("Data in slips for ip 1.2.3.4")
     print(__database__.getIPData("1.2.3.4"))
 
@@ -150,7 +146,6 @@ def test_ip_data_save_to_redis():
 
 
 def test_inputs():
-
     for test_case_name, test_case in json_data.__dict__.items():
         if test_case_name.startswith("_"):
             continue
@@ -247,8 +242,6 @@ def test_pigeon():
 
     # peer 6669 should read the database, then notify the other peer.
     # The other peer should save the data in the reports table
-
-
 
 
 if __name__ == "__main__":

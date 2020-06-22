@@ -58,28 +58,30 @@ class GoListener(multiprocessing.Process):
 
             data = message['data']
 
-            # separate control instruction and its parameters
             try:
-                command, parameters = data.split(" ", 1)
-                command = command.lower()
-
-            # ignore the instruction, if no parameters were provided
-            except ValueError:
-                # TODO: lower reputation
-                self.print("Invalid command: " + data)
+                data_dict = json.loads(data)
+            except json.decoder.JSONDecodeError:
+                print("Couldn't load message from pigeon - invalid json")
                 continue
 
-            if command == "go_data":
-                self.process_go_data(parameters)
+            try:
+                message_type = data_dict["message_type"]
+                message_contents = data_dict["message_contents"]
+            except KeyError:
+                print("Json from the pigeon doesn't contain expected values")
                 continue
 
-            if command == "peer_update":
-                self.process_go_update(parameters)
+            if message_type == "go_data":
+                self.process_go_data(message_contents)
                 continue
 
-            self.print("Invalid command: " + data)
+            if message_type == "peer_update":
+                self.process_go_update(message_contents)
+                continue
 
-    def process_go_data(self, parameters: str) -> None:
+            self.print("Invalid command: " + message_type)
+
+    def process_go_data(self, report: dict) -> None:
         """Process data sent by the go layer
 
         The data is expected to be a list of messages received from go peers. They are parsed and inserted into the
@@ -88,50 +90,45 @@ class GoListener(multiprocessing.Process):
 
         # check that the data was parsed correctly in the go part of the app
         # if there were any issues, the reports list will be empty
-        reports = validate_go_reports(parameters)
-        if len(reports) == 0:
-            self.print("Data list is empty")
+
+        # report is the dictionary containing reporter, report_time and message
+
+        # if intersection of a set of expected keys and the actual keys has four items, it means all keys are there
+        key_reporter = "reporter"
+        key_report_time = "report_time"
+        key_message = "message"
+
+        expected_keys = {key_reporter, key_report_time, key_message}
+        # if the overlap of the two sets is smaller than the set of keys, some keys are missing. The & operator
+        # picks the items that are present in both sets: {2, 4, 6, 8, 10, 12} & {3, 6, 9, 12, 15} = {3, 12}
+        if len(expected_keys & set(report.keys())) != 3:
+            self.print("Some key is missing in report")
             return
 
-        for report in reports:
-            # report is the dictionary containing reporter, version, report_time and message
+        report_time, success = validate_timestamp(report[key_report_time])
 
-            # if intersection of a set of expected keys and the actual keys has four items, it means all keys are there
-            key_reporter = "reporter"
-            key_report_time = "report_time"
-            key_message = "message"
+        if not success:
+            self.print("Invalid timestamp")
+            return
 
-            expected_keys = {key_reporter, key_report_time, key_message}
-            # if the overlap of the two sets is smaller than the set of keys, some keys are missing. The & operator
-            # picks the items that are present in both sets: {2, 4, 6, 8, 10, 12} & {3, 6, 9, 12, 15} = {3, 12}
-            if len(expected_keys & set(report.keys())) != 3:
-                self.print("Some key is missing in report")
-                return
+        reporter = report[key_reporter]
+        message = report[key_message]
 
-            report_time, success = validate_timestamp(report[key_report_time])
+        message_type, data = self.validate_message(message)
 
-            if not success:
-                self.print("Invalid timestamp")
-                return
+        if message_type == "report":
+            self.process_message_report(reporter, report_time, data)
 
-            reporter = report[key_reporter]
-            message = report[key_message]
+        elif message_type == "request":
+            self.process_message_request(reporter, report_time, data)
 
-            message_type, data = self.validate_message(message)
+        elif message_type == "blame":
+            self.print("blame is not implemented yet")
 
-            if message_type == "report":
-                self.process_message_report(reporter, report_time, data)
-
-            elif message_type == "request":
-                self.process_message_request(reporter, report_time, data)
-
-            elif message_type == "blame":
-                self.print("blame is not implemented yet")
-
-            else:
-                # TODO: lower reputation
-                self.print("Peer sent unknown message type")
-                return
+        else:
+            # TODO: lower reputation
+            self.print("Peer sent unknown message type")
+            return
 
     def validate_message(self, message: str) -> (str, dict):
         """
@@ -314,7 +311,7 @@ class GoListener(multiprocessing.Process):
         self.print(result)
         pass
 
-    def process_go_update(self, message: str) -> None:
+    def process_go_update(self, data: dict) -> None:
         """
         Handle update in peers reliability or IP address.
 
@@ -325,12 +322,6 @@ class GoListener(multiprocessing.Process):
         :param message: A string sent from go, should be json as specified above
         :return: None
         """
-
-        try:
-            data = json.loads(message)
-        except json.decoder.JSONDecodeError:
-            self.print("Go sent invalid json")
-            return
 
         try:
             peerid = data["peerid"]
