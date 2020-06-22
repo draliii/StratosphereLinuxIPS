@@ -4,7 +4,7 @@ from modules.p2ptrust.trustdb import TrustDB
 from modules.p2ptrust.printer import Printer
 
 
-class ReputationModel:
+class TrustModel:
     """
     Model for computing reputations of peers and IP addresses
 
@@ -19,6 +19,7 @@ class ReputationModel:
         self.printer = printer
         self.trustdb = trustdb
         self.config = config
+        self.reliability_weight = 0.7
 
     def print(self, text: str, verbose: int = 1, debug: int = 0) -> None:
         self.printer.print("[TrustDB] " + text, verbose, debug)
@@ -40,12 +41,12 @@ class ReputationModel:
         reports_on_ip = self.trustdb.get_opinion_on_ip(ipaddr)
         if len(reports_on_ip) == 0:
             return None, None, None
-        network_score, combined_score, combined_confidence = self.assemble_peer_opinion(reports_on_ip)
+        combined_score, combined_confidence = self.assemble_peer_opinion(reports_on_ip)
 
-        self.trustdb.update_cached_network_opinion("ip", ipaddr, combined_score, combined_confidence, network_score)
-        return combined_score, combined_confidence, network_score
+        self.trustdb.update_cached_network_opinion("ip", ipaddr, combined_score, combined_confidence, 0)
+        return combined_score, combined_confidence
 
-    def compute_peer_reputation(self, reliability: float, score: float, confidence: float) -> float:
+    def compute_peer_trust(self, reliability: float, score: float, confidence: float) -> float:
         """
         Compute the opinion value from a peer by multiplying his report data and his reputation
 
@@ -55,27 +56,25 @@ class ReputationModel:
         :return: The trust we should put in the report given by this peer
         """
 
-        return reliability * score * confidence
+        return ((reliability * self.reliability_weight) + (score * confidence))/2
 
     def normalize_peer_reputations(self, peers: list) -> (float, float, list):
         """
         Normalize peer reputation
 
-        A list of peer reputations is scaled so that the reputations sum to one, while keeping the hierarchy. It is
-        returned along with the average reputation and total reputation of the peers in the list.
+        A list of peer reputations is scaled so that the reputations sum to one, while keeping the hierarchy.
 
         :param peers: a list of peer reputations
-        :return: summed reputation of all peers, average reputation, a list of weighted reputations
+        :return: weighted trust value
         """
 
-        rep_sum = sum(peers)
-        w = 1/rep_sum
+        # move trust values from [-1, 1] to [0, 1]
+        normalized_trust = [(t + 1)/2 for t in peers]
 
-        rep_avg = mean(peers)
+        normalize_net_trust_sum = sum(normalized_trust)
 
-        # now the reputations will sum to 1
-        weighted_reputations = [w*x for x in peers]
-        return rep_sum, rep_avg, weighted_reputations
+        weighted_trust = [nt / normalize_net_trust_sum for nt in normalized_trust]
+        return weighted_trust
 
     def assemble_peer_opinion(self, data: list) -> (float, float, float):
         """
@@ -94,16 +93,13 @@ class ReputationModel:
         reporters = []
 
         for peer_report in data:
-            # TODO: the following line crashes
             report_score, report_confidence, reporter_reliability, reporter_score, reporter_confidence = peer_report
             reports.append((report_score, report_confidence))
-            reporters.append(self.compute_peer_reputation(reporter_reliability, reporter_score, reporter_confidence))
+            reporters.append(self.compute_peer_trust(reporter_reliability, reporter_score, reporter_confidence))
 
-        report_sum, report_avg, weighted_reporters = self.normalize_peer_reputations(reporters)
+        weighted_reporters = self.normalize_peer_reputations(reporters)
 
         combined_score = sum([r[0]*w for r, w, in zip(reports, weighted_reporters)])
-        combined_confidence = sum([r[1]*w for r, w, in zip(reports, weighted_reporters)])
+        combined_confidence = sum([r[1]*w for r, w, in zip(reports, reporters)])/len(reporters)
 
-        network_score = report_avg
-
-        return network_score, combined_score, combined_confidence
+        return combined_score, combined_confidence

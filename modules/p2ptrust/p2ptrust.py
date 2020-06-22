@@ -118,7 +118,7 @@ class Trust(Module, multiprocessing.Process):
         if rename_sql_db_file:
             sql_db_name += str(pigeon_port)
         self.trust_db = trustdb.TrustDB(sql_db_name, self.printer, drop_tables_on_startup=True)
-        self.reputation_model = reputation_model.ReputationModel(self.printer, self.trust_db, self.config)
+        self.reputation_model = reputation_model.TrustModel(self.printer, self.trust_db, self.config)
 
         self.go_listener_process = go_listener.GoListener(self.printer, self.trust_db, self.config, self.ip_storage,
                                                           gopy_channel=self.gopy_channel, pygo_channel=self.pygo_channel)
@@ -181,7 +181,6 @@ class Trust(Module, multiprocessing.Process):
             self.print(str(inst.args), 0, 1)
             self.print(str(inst), 0, 1)
             return True
-
 
     def handle_update(self, ip_address: str) -> None:
         """
@@ -279,7 +278,7 @@ class Trust(Module, multiprocessing.Process):
         time.sleep(10)
 
         # get data from db, processed by the trust model
-        combined_score, combined_confidence, network_score = self.reputation_model.get_opinion_on_ip(ip_address)
+        combined_score, combined_confidence = self.reputation_model.get_opinion_on_ip(ip_address)
 
         # no data in db - this happens when testing, if there is not enough data on peers
         if combined_score is None:
