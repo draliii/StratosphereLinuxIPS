@@ -23,12 +23,16 @@ class GoListener(multiprocessing.Process):
                  printer: Printer,
                  trustdb: TrustDB,
                  config: configparser.ConfigParser,
-                 gopy_channel: str = "p2p_gopy"):
+                 storage_name: str,
+                 gopy_channel: str = "p2p_gopy",
+                 pygo_channel: str = "p2p_pygo"):
         super().__init__()
 
         self.printer = printer
         self.trustdb = trustdb
         self.config = config
+        self.pygo_channel = pygo_channel
+        self.storage_name = storage_name
 
         self.print("Starting go listener")
 
@@ -47,6 +51,7 @@ class GoListener(multiprocessing.Process):
             # listen for messages from the go part
 
             message = self.rdb_channel.get_message(timeout=None)
+            self.print("Golistener got a message")
 
             if message["type"] != "message":
                 continue
@@ -61,7 +66,7 @@ class GoListener(multiprocessing.Process):
             # ignore the instruction, if no parameters were provided
             except ValueError:
                 # TODO: lower reputation
-                self.print("Invalid command: ", data)
+                self.print("Invalid command: " + data)
                 continue
 
             if command == "go_data":
@@ -72,7 +77,7 @@ class GoListener(multiprocessing.Process):
                 self.process_go_update(parameters)
                 continue
 
-            self.print("Invalid command: ", data)
+            self.print("Invalid command: " + data)
 
     def process_go_data(self, parameters: str) -> None:
         """Process data sent by the go layer
@@ -201,11 +206,11 @@ class GoListener(multiprocessing.Process):
             self.print("Module can't process given evaluation type")
             return
 
-        score, confidence = get_ip_info_from_slips(key)
+        score, confidence = get_ip_info_from_slips(key, self.storage_name)
         if score is not None:
-            send_evaluation_to_go(key, score, confidence, reporter)
+            send_evaluation_to_go(key, score, confidence, reporter, self.pygo_channel)
         else:
-            send_empty_evaluation_to_go(key, reporter)
+            send_empty_evaluation_to_go(key, reporter, self.pygo_channel)
 
     def process_message_report(self, reporter: str, report_time: int, data: dict):
         """

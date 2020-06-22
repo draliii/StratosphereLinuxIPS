@@ -202,7 +202,7 @@ def build_score_confidence(score: float, confidence: float) -> dict:
     return evaluation
 
 
-def send_evaluation_to_go(ip: str, score: float, confidence: float, recipient: str) -> None:
+def send_evaluation_to_go(ip: str, score: float, confidence: float, recipient: str, channel_name: str) -> None:
     """
     Take data and send it to a peer as report.
 
@@ -219,10 +219,10 @@ def send_evaluation_to_go(ip: str, score: float, confidence: float, recipient: s
     message_json = json.dumps(message_raw)
     message_b64 = base64.b64encode(bytes(message_json, "ascii")).decode()
 
-    send_b64_to_go(message_b64, recipient)
+    send_b64_to_go(message_b64, recipient, channel_name)
 
 
-def send_empty_evaluation_to_go(ip: str, recipient: str) -> None:
+def send_empty_evaluation_to_go(ip: str, recipient: str, channel_name: str) -> None:
     """
     Send empty data to other peer, to show that there is no data here to be shared.
 
@@ -236,10 +236,10 @@ def send_empty_evaluation_to_go(ip: str, recipient: str) -> None:
     message_json = json.dumps(message_raw)
     message_b64 = base64.b64encode(bytes(message_json, "ascii")).decode()
 
-    send_b64_to_go(message_b64, recipient)
+    send_b64_to_go(message_b64, recipient, channel_name)
 
 
-def send_blame_to_go(ip: str, score: float, confidence: float) -> None:
+def send_blame_to_go(ip: str, score: float, confidence: float, channel_name: str) -> None:
     """
     Take data and send it to a peer as a blame.
 
@@ -256,10 +256,10 @@ def send_blame_to_go(ip: str, score: float, confidence: float) -> None:
     message_json = json.dumps(message_raw)
     message_b64 = base64.b64encode(bytes(message_json, "ascii")).decode()
 
-    send_b64_to_go(message_b64, recipient)
+    send_b64_to_go(message_b64, recipient, channel_name)
 
 
-def send_request_to_go(ip: str) -> None:
+def send_request_to_go(ip: str, channel_name: str) -> None:
     """
     Send a request about an IP to peers.
 
@@ -275,10 +275,10 @@ def send_request_to_go(ip: str) -> None:
     message_json = json.dumps(message_raw)
     message_b64 = base64.b64encode(bytes(message_json, "ascii")).decode()
 
-    send_b64_to_go(message_b64, recipient)
+    send_b64_to_go(message_b64, recipient, channel_name)
 
 
-def send_b64_to_go(message: str, recipient: str) -> None:
+def send_b64_to_go(message: str, recipient: str, channel_name: str) -> None:
     """
     Send message to a peer
 
@@ -293,7 +293,7 @@ def send_b64_to_go(message: str, recipient: str) -> None:
     data_raw = {"message": message, "recipient": recipient}
     data_json = json.dumps(data_raw)
     print("[publish trust -> go]", data_json)
-    __database__.publish("p2p_pygo", data_json)
+    __database__.publish(channel_name, data_json)
 
     decoded_data = base64.b64decode(message)
     print("[raw published data]", decoded_data)

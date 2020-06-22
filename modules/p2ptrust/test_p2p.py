@@ -18,7 +18,7 @@ def init_tests(pigeon_port=6669):
     # Start the DB
     __database__.start(config)
     __database__.setOutputQueue(output_process_queue)
-    module_process = Trust(output_process_queue, config, rename_with_port=True, pigeon_port=pigeon_port)
+    module_process = Trust(output_process_queue, config, rename_with_port=True, pigeon_port=pigeon_port, rename_sql_db_file=True)
 
     module_process.start()
 

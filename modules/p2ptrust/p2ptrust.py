@@ -56,10 +56,12 @@ class Trust(Module, multiprocessing.Process):
                  pygo_channel="p2p_pygo",
                  start_pigeon=True,
                  pigeon_logfile="pigeon_logs",
-                 rename_database=False):
+                 rename_redis_ip_info=False,
+                 rename_sql_db_file=False,
+                 name_suffix=""):
         multiprocessing.Process.__init__(self)
 
-        self.printer = Printer(output_queue, self.name)
+        self.printer = Printer(output_queue, self.name + name_suffix)
 
         self.output_queue = output_queue
         # In case you need to read the slips.conf configuration file for your own configurations
@@ -91,7 +93,7 @@ class Trust(Module, multiprocessing.Process):
         self.pigeon_logfile = self.pigeon_logfile_raw + str_port
 
         self.ip_storage = "IPsInfo"
-        if rename_database:
+        if rename_redis_ip_info:
             self.ip_storage += str(self.pigeon_port)
 
         # Set the timeout based on the platform. This is because the pyredis lib does not have officially recognized the
@@ -112,10 +114,14 @@ class Trust(Module, multiprocessing.Process):
         self.pubsub.subscribe(self.p2p_data_request_channel)
 
         # TODO: do not drop tables on startup
-        self.trust_db = trustdb.TrustDB(r"trustdb.db", self.printer, drop_tables_on_startup=True)
+        sql_db_name = "trustdb.db"
+        if rename_sql_db_file:
+            sql_db_name += str(pigeon_port)
+        self.trust_db = trustdb.TrustDB(sql_db_name, self.printer, drop_tables_on_startup=True)
         self.reputation_model = reputation_model.ReputationModel(self.printer, self.trust_db, self.config)
 
-        self.go_listener_process = go_listener.GoListener(self.printer, self.trust_db, self.config, gopy_channel=self.gopy_channel)
+        self.go_listener_process = go_listener.GoListener(self.printer, self.trust_db, self.config, self.ip_storage,
+                                                          gopy_channel=self.gopy_channel, pygo_channel=self.pygo_channel)
         self.go_listener_process.start()
 
         outfile = open(self.pigeon_logfile, "+w")
@@ -158,12 +164,12 @@ class Trust(Module, multiprocessing.Process):
                         self.pigeon.send_signal(signal.SIGINT)
                     return True
 
-                if message["channel"] == "ip_info_change":
+                if message["channel"] == self.slips_update_channel:
                     self.print("IP info was updated in slips for ip: " + data)
                     self.handle_update(message["data"])
                     continue
 
-                if message["channel"] == "p2p_data_request":
+                if message["channel"] == self.p2p_data_request_channel:
                     self.handle_data_request(message["data"])
                     continue
 
@@ -191,6 +197,7 @@ class Trust(Module, multiprocessing.Process):
             self.print("IP validation failed")
             return
 
+        print(self.ip_storage)
         score, confidence = utils.get_ip_info_from_slips(ip_address, self.ip_storage)
         if score is None:
             self.print("IP doesn't have any score/confidence values in DB")
@@ -219,11 +226,11 @@ class Trust(Module, multiprocessing.Process):
         # TODO: in the future, be smarter and share only when needed. For now, we will always share
         # if not data_already_reported:
         #     send_evaluation_to_go(ip_address, score, confidence, "*")
-        utils.send_evaluation_to_go(ip_address, score, confidence, "*")
+        utils.send_evaluation_to_go(ip_address, score, confidence, "*", self.pygo_channel)
 
         # TODO: discuss - based on what criteria should we start blaming?
         if score > 0.8 and confidence > 0.6:
-            utils.send_blame_to_go(ip_address, score, confidence)
+            utils.send_blame_to_go(ip_address, score, confidence, self.pygo_channel)
 
     def handle_data_request(self, message_data: str) -> None:
         """
@@ -265,7 +272,7 @@ class Trust(Module, multiprocessing.Process):
         # TODO: in some cases, it is not necessary to wait, specify that and implement it
         #       I do not remember writing this comment. I have no idea in which cases there is no need to wait? Maybe
         #       when everybody responds asap?
-        utils.send_request_to_go(ip_address)
+        utils.send_request_to_go(ip_address, self.pygo_channel)
 
         # go will send a reply in no longer than 10s (or whatever the timeout there is set to). The reply will be
         # processed by an independent process in this module and database will be updated accordingly
