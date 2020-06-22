@@ -51,13 +51,17 @@ To simplify implementation, the message from go layer always wraps the data in a
 more reports at the same time.
 
 ```json
-[
-  {
-    "reporter": "abcsakughroiauqrghaui",   // the peer that sent the data
-    "report_time": 154900000,              // time of receiving the data
-    "message": "ewogICAgImtleV90eXBlIjogImlwIiwKICAgICJrZXkiOiAiMS4yLjMuNDAiLAogICAgImV........jYKfQ=="
-  }
-]
+{
+  "message_type": "go_data",
+  "message_contents": 
+    [
+      {
+        "reporter": "abcsakughroiauqrghaui",   // the peer that sent the data
+        "report_time": 154900000,              // time of receiving the data
+        "message": "ewogICAgImtleV90eXBlIjogImlwIiwKICAgICJrZXkiOiAiMS4yLjMuNDAiLAogICAgImV........jYKfQ=="
+      }
+    ]
+}
 ```
 
 ### Peer data update `peer_update`
@@ -71,9 +75,13 @@ a list.
 
 ```json
 {
-  "peerid": "QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N",
-  "ip": "1.2.3.40",
-  "reliability": "0.3"
+  "message_type": "peer_update",
+  "message_contents":
+    {
+      "peerid": "QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N",
+      "ip": "1.2.3.40",
+      "reliability": "0.3"
+    }
 }
 ```
 
