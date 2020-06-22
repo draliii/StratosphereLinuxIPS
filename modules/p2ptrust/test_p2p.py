@@ -48,7 +48,7 @@ def test_slips_integration():
     print("Set evaluation for IP 192.168.0.4")
     # module_process.sqlite_db.insert_go_score("abcsakughroiauqrghaui", 1, 0)
     # module_process.sqlite_db.insert_go_ip_pairing("abcsakughroiauqrghaui", "192.168.0.4", 1) #B
-    set_ip_data("192.168.0.4", {"score": 0.1, "confidence": 1})
+    set_ip_data("192.168.0.4", {"score": -0.1, "confidence": 1})
     time.sleep(0.5)
     print()
 
@@ -87,7 +87,7 @@ def test_slips_integration():
     print()
 
     print("Slips makes a detection of IP 1.2.3.6")
-    set_ip_data("1.2.3.6", {"score": 0.7, "confidence": 0.7})
+    set_ip_data("1.2.3.6", {"score": -1, "confidence": 0.7})
     time.sleep(0.5)
     time.sleep(1)
     print()
@@ -260,10 +260,10 @@ if __name__ == "__main__":
 
     # test_ip_info_changed()
     # test_inputs()
-    # test_slips_integration()
+    test_slips_integration()
     # test_ip_data_save_to_redis()
     # test_handle_slips_update()
-    test_pigeon()
+    # test_pigeon()
 
     print(time.time() - t)
     time.sleep(10000000)

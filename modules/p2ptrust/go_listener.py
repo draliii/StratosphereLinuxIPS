@@ -298,7 +298,7 @@ class GoListener(multiprocessing.Process):
             return
 
         # validate value ranges (must be from <0, 1>)
-        if score < 0 or score > 1:
+        if score < -1 or score > 1:
             self.print("Score value is out of bounds")
             # TODO: lower reputation
             return
