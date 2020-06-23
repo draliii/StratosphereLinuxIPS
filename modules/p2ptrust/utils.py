@@ -145,7 +145,7 @@ def read_data_from_ip_info(ip_info: dict) -> (float, float):
         return None, None
 
 
-def save_ip_report_to_db(ip, score, confidence, network_trust, timestamp=None):
+def save_ip_report_to_db(ip, score, confidence, network_trust, storage_name, timestamp=None):
     # TODO: because of bugs in the database, I can only save this once.
 
     if timestamp is None:
@@ -155,8 +155,35 @@ def save_ip_report_to_db(ip, score, confidence, network_trust, timestamp=None):
     wrapped_data = {"p2p4slips": report_data}
 
     # TODO: remove the first call after database is fixed
-    __database__.setNewIP(ip)
-    __database__.setInfoForIPs(ip, wrapped_data)
+    setNewIP(ip, storage_name)
+    setInfoForIPs(ip, wrapped_data, storage_name)
+
+def setNewIP(ip, storage_name):
+    data = getIPData(ip, storage_name)
+    if data is False:
+        __database__.r.hset(storage_name, ip, '{}')
+        __database__.publish('new_ip', ip)
+
+def setInfoForIPs(ip, wrapped_data, storage_name):
+        data = getIPData(ip, storage_name)
+
+        if not data:
+            setNewIP(ip, storage_name)
+            data = getIPData(ip, storage_name)
+
+        for key in iter(wrapped_data):
+            if type(data) == str:
+                data = json.loads(data)
+
+            data_to_store = wrapped_data[key]
+            try:
+                _ = data[key]
+            except KeyError:
+                data[key] = data_to_store
+                newdata_str = json.dumps(data)
+                __database__.r.hset(storage_name, ip, newdata_str)
+                # Publish the changes
+                __database__.r.publish('ip_info_change', ip)
 
 
 #

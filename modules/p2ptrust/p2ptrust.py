@@ -286,4 +286,5 @@ class Trust(Module, multiprocessing.Process):
             self.print("No data received from network :(")
         else:
             self.print("Network shared some data, saving it now!")
-            utils.save_ip_report_to_db(ip_address, combined_score, combined_confidence, network_score)
+            self.print("IP: " + ip_address + ", result: [" + str(combined_score) + ", " + str(combined_confidence) + "]")
+            utils.save_ip_report_to_db(ip_address, combined_score, combined_confidence, network_score, self.ip_storage)
