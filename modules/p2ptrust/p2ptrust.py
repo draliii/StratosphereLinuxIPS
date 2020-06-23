@@ -175,12 +175,12 @@ class Trust(Module, multiprocessing.Process):
 
         except KeyboardInterrupt:
             return True
-        except Exception as inst:
-            self.print('Problem on the run()', 0, 1)
-            self.print(str(type(inst)), 0, 1)
-            self.print(str(inst.args), 0, 1)
-            self.print(str(inst), 0, 1)
-            return True
+        # except Exception as inst:
+        #     self.print('Problem on the run()', 0, 1)
+        #     self.print(str(type(inst)), 0, 1)
+        #     self.print(str(inst.args), 0, 1)
+        #     self.print(str(inst), 0, 1)
+        #     return True
 
     def handle_update(self, ip_address: str) -> None:
         """
@@ -204,7 +204,7 @@ class Trust(Module, multiprocessing.Process):
 
         # insert data from slips to database
         # TODO: remove debug timestamps
-        self.trust_db.insert_slips_score(ip_address, score, confidence, timestamp=3)
+        self.trust_db.insert_slips_score(ip_address, score, confidence)
 
         # TODO: discuss - only share score if confidence is high enough?
         # compare slips data with data in go
@@ -275,7 +275,8 @@ class Trust(Module, multiprocessing.Process):
 
         # go will send a reply in no longer than 10s (or whatever the timeout there is set to). The reply will be
         # processed by an independent process in this module and database will be updated accordingly
-        time.sleep(10)
+        # TODO: the timeout is lowered to allow fast experiments
+        time.sleep(0.5)
 
         # get data from db, processed by the trust model
         combined_score, combined_confidence = self.reputation_model.get_opinion_on_ip(ip_address)

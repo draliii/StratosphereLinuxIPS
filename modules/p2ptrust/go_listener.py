@@ -71,12 +71,14 @@ class GoListener(multiprocessing.Process):
                 print("Json from the pigeon doesn't contain expected values")
                 continue
 
-            if message_type == "go_data":
-                self.process_go_data(message_contents)
-                continue
-
             if message_type == "peer_update":
                 self.process_go_update(message_contents)
+                continue
+
+            k = 3
+
+            if message_type == "go_data":
+                self.process_go_data(message_contents)
                 continue
 
             self.print("Invalid command: " + message_type)

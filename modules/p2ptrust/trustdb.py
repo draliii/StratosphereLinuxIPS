@@ -1,5 +1,6 @@
 import sqlite3
 import datetime
+import time
 
 from modules.p2ptrust.printer import Printer
 
@@ -17,7 +18,7 @@ class TrustDB:
 
         self.create_tables()
         # self.insert_slips_score("8.8.8.8", 0.0, 0.9)
-        self.get_opinion_on_ip("zzz")
+        # self.get_opinion_on_ip("zzz")
 
     def __del__(self):
         self.conn.close()
@@ -71,7 +72,11 @@ class TrustDB:
 
     def insert_slips_score(self, ip: str, score: float, confidence: float, timestamp: int = None):
         if timestamp is None:
-            timestamp = datetime.datetime.now()
+            timestamp = time.time()
+        else:
+            k = 3
+        timestamp = time.time()
+        print("###################3Slips score timeout: ", timestamp)
         parameters = (ip, score, confidence, timestamp)
         self.conn.execute("INSERT INTO slips_reputation (ipaddress, score, confidence, update_time) "
                           "VALUES (?, ?, ?, ?);", parameters)
@@ -80,6 +85,10 @@ class TrustDB:
     def insert_go_score(self, peerid: str, reliability: float, timestamp: int = None):
         if timestamp is None:
             timestamp = datetime.datetime.now()
+        else:
+            k = 3
+        timestamp = time.time()
+        print("#####################Go score timeout: ", timestamp)
         parameters = (peerid, reliability, timestamp)
         self.conn.execute("INSERT INTO go_reliability (peerid, reliability, update_time) "
                           "VALUES (?, ?, ?);", parameters)
@@ -88,6 +97,8 @@ class TrustDB:
     def insert_go_ip_pairing(self, peerid: str, ip: str, timestamp: int = None):
         if timestamp is None:
             timestamp = datetime.datetime.now()
+        timestamp = time.time()
+
         parameters = (ip, peerid, timestamp)
         self.conn.execute("INSERT INTO peer_ips (ipaddress, peerid, update_time) "
                           "VALUES (?, ?, ?);", parameters)
@@ -104,6 +115,8 @@ class TrustDB:
                              confidence: float, timestamp: int = None):
         if timestamp is None:
             timestamp = datetime.datetime.now()
+        timestamp = time.time()
+
         parameters = (reporter_peerid, key_type, reported_key, score, confidence, timestamp)
         self.conn.execute("INSERT INTO reports "
                           "(reporter_peerid, key_type, reported_key, score, confidence, update_time) "
@@ -153,6 +166,7 @@ class TrustDB:
                                        "WHERE update_time <= ? AND peerid = ?;", (report_timestamp, reporter_peerid))
             _, reporter_ipaddress = ip_cur.fetchone()
             # TODO: handle empty response
+            # TODO: skip report about self
 
             # get the most recent score and confidence for the given IP-peerID pair
             parameters_dict = {"peerid": reporter_peerid, "ipaddress": reporter_ipaddress}
@@ -176,7 +190,7 @@ class TrustDB:
                                                      "    ORDER BY lower_bound DESC  "
                                                      "    ) x  "
                                                      "LEFT JOIN slips_reputation sr USING (ipaddress)  "
-                                                     "WHERE sr.update_time < x.upper_bound AND "
+                                                     "WHERE sr.update_time <= x.upper_bound AND "
                                                      "      sr.update_time >= x.lower_bound  "
                                                      "ORDER BY sr.update_time DESC  "
                                                      "LIMIT 1  "

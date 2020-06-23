@@ -3,6 +3,7 @@ import time
 import modules.p2ptrust.json_data as json_data
 from modules.p2ptrust.utils import save_ip_report_to_db
 from modules.p2ptrust.p2ptrust import Trust
+from modules.p2ptrust.trustdb import TrustDB
 from slips.core.database import __database__
 from multiprocessing import Queue
 from outputProcess import OutputProcess
@@ -243,17 +244,23 @@ def test_pigeon():
     # peer 6669 should read the database, then notify the other peer.
     # The other peer should save the data in the reports table
 
+def test_trustdb():
+    trustdb = TrustDB("/home/dita/ownCloud/stratosphere/SLIPS/modules/p2ptrust/experiments/trustdb.db6660", None)
+    print(trustdb.get_opinion_on_ip("1.1.1.3"))
+    k = 3
+
 
 if __name__ == "__main__":
     t = time.time()
+    test_trustdb()
 
-    init_tests()
+    # init_tests()
 
     # test_evaluation_error()
 
     # test_ip_info_changed()
     # test_inputs()
-    test_slips_integration()
+    # test_slips_integration()
     # test_ip_data_save_to_redis()
     # test_handle_slips_update()
     # test_pigeon()

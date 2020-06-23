@@ -40,7 +40,7 @@ class TrustModel:
 
         reports_on_ip = self.trustdb.get_opinion_on_ip(ipaddr)
         if len(reports_on_ip) == 0:
-            return None, None, None
+            return None, None
         combined_score, combined_confidence = self.assemble_peer_opinion(reports_on_ip)
 
         self.trustdb.update_cached_network_opinion("ip", ipaddr, combined_score, combined_confidence, 0)
