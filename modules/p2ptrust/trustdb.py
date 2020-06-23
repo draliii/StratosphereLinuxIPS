@@ -166,7 +166,10 @@ class TrustDB:
                                        "WHERE update_time <= ? AND peerid = ?;", (report_timestamp, reporter_peerid))
             _, reporter_ipaddress = ip_cur.fetchone()
             # TODO: handle empty response
-            # TODO: skip report about self
+
+            # prevent peers from reporting about themselves
+            if reporter_ipaddress == ipaddress:
+                continue
 
             # get the most recent score and confidence for the given IP-peerID pair
             parameters_dict = {"peerid": reporter_peerid, "ipaddress": reporter_ipaddress}
@@ -199,10 +202,16 @@ class TrustDB:
             if data is None:
                 self.print("No slips reputation data for " + str(parameters_dict))
                 continue
+
+            go_reliability_cur = self.conn.execute("SELECT reliability FROM main.go_reliability WHERE peerid = ? ORDER BY update_time DESC LIMIT 1;", (reporter_peerid, ))
+            reliability = go_reliability_cur.fetchone()
+            if reliability is None:
+                self.print("No reliability for ", reporter_peerid)
+                continue
+            reliability = reliability[0]
+
             _, _, _, _, _, reporter_score, reporter_confidence, reputation_update_time = data
-            # TODO: the code further on expects the reporter trust value, replace the temporary 1
-            # report_score, report_confidence, reporter_trust, reporter_score, reporter_confidence
-            reporters_scores.append((report_score, report_confidence, 1, reporter_score, reporter_confidence))
+            reporters_scores.append((report_score, report_confidence, reliability, reporter_score, reporter_confidence))
 
         return reporters_scores
 
