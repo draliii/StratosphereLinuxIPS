@@ -58,6 +58,7 @@ class Trust(Module, multiprocessing.Process):
                  pigeon_logfile="pigeon_logs",
                  rename_redis_ip_info=False,
                  rename_sql_db_file=False,
+                 override_p2p=False,
                  name_suffix=""):
         multiprocessing.Process.__init__(self)
 
@@ -80,6 +81,7 @@ class Trust(Module, multiprocessing.Process):
         self.pygo_channel_raw = pygo_channel
         self.pigeon_logfile_raw = pigeon_logfile
         self.start_pigeon = start_pigeon
+        self.override_p2p = override_p2p
 
         if self.rename_with_port:
             str_port = str(self.pigeon_port)
@@ -120,7 +122,7 @@ class Trust(Module, multiprocessing.Process):
         self.trust_db = trustdb.TrustDB(sql_db_name, self.printer, drop_tables_on_startup=True)
         self.reputation_model = reputation_model.TrustModel(self.printer, self.trust_db, self.config)
 
-        self.go_listener_process = go_listener.GoListener(self.printer, self.trust_db, self.config, self.ip_storage,
+        self.go_listener_process = go_listener.GoListener(self.printer, self.trust_db, self.config, self.ip_storage, self,
                                                           gopy_channel=self.gopy_channel, pygo_channel=self.pygo_channel)
         self.go_listener_process.start()
 
@@ -288,3 +290,9 @@ class Trust(Module, multiprocessing.Process):
             self.print("Network shared some data, saving it now!")
             self.print("IP: " + ip_address + ", result: [" + str(combined_score) + ", " + str(combined_confidence) + "]")
             utils.save_ip_report_to_db(ip_address, combined_score, combined_confidence, network_score, self.ip_storage)
+
+    def process_message_request(self, reporter: str, report_time: int, data: dict) -> None:
+        pass
+
+    def process_message_report(self, reporter: str, report_time: int, data: dict):
+        pass

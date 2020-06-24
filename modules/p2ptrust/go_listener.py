@@ -24,6 +24,7 @@ class GoListener(multiprocessing.Process):
                  trustdb: TrustDB,
                  config: configparser.ConfigParser,
                  storage_name: str,
+                 parent,
                  gopy_channel: str = "p2p_gopy",
                  pygo_channel: str = "p2p_pygo"):
         super().__init__()
@@ -33,6 +34,7 @@ class GoListener(multiprocessing.Process):
         self.config = config
         self.pygo_channel = pygo_channel
         self.storage_name = storage_name
+        self.parent = parent
 
         self.print("Starting go listener")
 
@@ -180,6 +182,9 @@ class GoListener(multiprocessing.Process):
         :return: None. Result is sent directly to the peer
         """
 
+        if self.parent.override_p2p:
+            self.parent.process_message_request(reporter, report_time, data)
+
         # validate keys in message
         try:
             key = data["key"]
@@ -222,6 +227,9 @@ class GoListener(multiprocessing.Process):
         :param data: Report data
         :return: None. Result is saved to the database
         """
+
+        if self.parent.override_p2p:
+            self.parent.process_message_report(reporter, report_time, data)
 
         # validate keys in message
         try:
