@@ -11,6 +11,7 @@ class TrustDB:
 
         self.printer = printer
 
+        print(db_file)
         self.conn = sqlite3.connect(db_file)
         if drop_tables_on_startup:
             self.print("Dropping tables")

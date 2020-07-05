@@ -59,6 +59,7 @@ class Trust(Module, multiprocessing.Process):
                  rename_redis_ip_info=False,
                  rename_sql_db_file=False,
                  override_p2p=False,
+                 data_dir="./",
                  name_suffix=""):
         multiprocessing.Process.__init__(self)
 
@@ -94,9 +95,9 @@ class Trust(Module, multiprocessing.Process):
         self.pygo_channel = self.pygo_channel_raw + str_port
         self.pigeon_logfile = self.pigeon_logfile_raw + str_port
 
-        self.ip_storage = "IPsInfo"
+        self.storage_name = "IPsInfo"
         if rename_redis_ip_info:
-            self.ip_storage += str(self.pigeon_port)
+            self.storage_name += str(self.pigeon_port)
 
         # Set the timeout based on the platform. This is because the pyredis lib does not have officially recognized the
         # timeout=None as it works in only macos and timeout=-1 as it only works in linux
@@ -116,13 +117,13 @@ class Trust(Module, multiprocessing.Process):
         self.pubsub.subscribe(self.p2p_data_request_channel)
 
         # TODO: do not drop tables on startup
-        sql_db_name = "trustdb.db"
+        sql_db_name = data_dir + "trustdb.db"
         if rename_sql_db_file:
             sql_db_name += str(pigeon_port)
         self.trust_db = trustdb.TrustDB(sql_db_name, self.printer, drop_tables_on_startup=True)
         self.reputation_model = reputation_model.TrustModel(self.printer, self.trust_db, self.config)
 
-        self.go_listener_process = go_listener.GoListener(self.printer, self.trust_db, self.config, self.ip_storage, self,
+        self.go_listener_process = go_listener.GoListener(self.printer, self.trust_db, self.config, self.storage_name, self,
                                                           gopy_channel=self.gopy_channel, pygo_channel=self.pygo_channel)
         self.go_listener_process.start()
 
@@ -198,8 +199,8 @@ class Trust(Module, multiprocessing.Process):
             self.print("IP validation failed")
             return
 
-        print(self.ip_storage)
-        score, confidence = utils.get_ip_info_from_slips(ip_address, self.ip_storage)
+        print(self.storage_name)
+        score, confidence = utils.get_ip_info_from_slips(ip_address, self.storage_name)
         if score is None:
             self.print("IP doesn't have any score/confidence values in DB")
             return
@@ -289,10 +290,12 @@ class Trust(Module, multiprocessing.Process):
         else:
             self.print("Network shared some data, saving it now!")
             self.print("IP: " + ip_address + ", result: [" + str(combined_score) + ", " + str(combined_confidence) + "]")
-            utils.save_ip_report_to_db(ip_address, combined_score, combined_confidence, network_score, self.ip_storage)
+            utils.save_ip_report_to_db(ip_address, combined_score, combined_confidence, network_score, self.storage_name)
 
-    def process_message_request(self, reporter: str, report_time: int, data: dict) -> None:
+    def respond_to_message_request(self, key, reporter):
+        print("message request in parent was called")
         pass
 
     def process_message_report(self, reporter: str, report_time: int, data: dict):
+        
         pass

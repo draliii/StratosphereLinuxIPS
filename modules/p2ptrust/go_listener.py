@@ -182,9 +182,6 @@ class GoListener(multiprocessing.Process):
         :return: None. Result is sent directly to the peer
         """
 
-        if self.parent.override_p2p:
-            self.parent.process_message_request(reporter, report_time, data)
-
         # validate keys in message
         try:
             key = data["key"]
@@ -210,11 +207,29 @@ class GoListener(multiprocessing.Process):
             self.print("Module can't process given evaluation type")
             return
 
+        if self.parent.override_p2p:
+            print("Overriding p2p")
+            self.parent.respond_to_message_request(key, reporter)
+        else:
+            print("Not overriding p2p")
+            self.respond_to_message_request(key, reporter)
+
+    def respond_to_message_request(self, key, reporter):
         score, confidence = get_ip_info_from_slips(key, self.storage_name)
         if score is not None:
             send_evaluation_to_go(key, score, confidence, reporter, self.pygo_channel)
         else:
             send_empty_evaluation_to_go(key, reporter, self.pygo_channel)
+
+    def get_ip_info_from_slips(self, key):
+        score, confidence = get_ip_info_from_slips(key, self.storage_name)
+        return score, confidence
+
+    def send_evaluation_to_go(self, key, score, confidence, reporter):
+        send_evaluation_to_go(key, score, confidence, reporter, self.pygo_channel)
+
+    def send_empty_evaluation_to_go(self, key, reporter):
+        send_empty_evaluation_to_go(key, reporter, self.pygo_channel)
 
     def process_message_report(self, reporter: str, report_time: int, data: dict):
         """
