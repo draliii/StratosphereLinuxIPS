@@ -4,11 +4,11 @@ import configparser
 import json
 import multiprocessing
 
-from modules.p2ptrust.utils import validate_ip_address, validate_go_reports, validate_timestamp, \
+from p2ptrust.utils.utils import validate_ip_address, validate_timestamp, \
     get_ip_info_from_slips, send_evaluation_to_go, send_empty_evaluation_to_go
-from modules.p2ptrust.printer import Printer
+from p2ptrust.utils.printer import Printer
 from slips.core.database import __database__
-from modules.p2ptrust.trustdb import TrustDB
+from p2ptrust.trust.trustdb import TrustDB
 
 
 class GoListener(multiprocessing.Process):

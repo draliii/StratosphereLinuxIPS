@@ -1,7 +1,6 @@
 import configparser
-from statistics import mean
-from modules.p2ptrust.trustdb import TrustDB
-from modules.p2ptrust.printer import Printer
+from p2ptrust.trust.trustdb import TrustDB
+from p2ptrust.utils.printer import Printer
 
 
 class TrustModel:

@@ -2,7 +2,7 @@ import sqlite3
 import datetime
 import time
 
-from modules.p2ptrust.printer import Printer
+from p2ptrust.utils.printer import Printer
 
 
 class TrustDB:

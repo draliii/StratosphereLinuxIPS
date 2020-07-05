@@ -1,9 +1,9 @@
 import configparser
 import time
-import modules.p2ptrust.json_data as json_data
-from modules.p2ptrust.utils import save_ip_report_to_db
+import p2ptrust.testing.json_data as json_data
+from p2ptrust.utils.utils import save_ip_report_to_db
 from modules.p2ptrust.p2ptrust import Trust
-from modules.p2ptrust.trustdb import TrustDB
+from p2ptrust.trust.trustdb import TrustDB
 from slips.core.database import __database__
 from multiprocessing import Queue
 from outputProcess import OutputProcess
