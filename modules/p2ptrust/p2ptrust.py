@@ -11,7 +11,7 @@ from slips.common.abstracts import Module
 import p2ptrust.trust.trustdb as trustdb
 from p2ptrust.utils.printer import Printer
 import p2ptrust.trust.trust_model as reputation_model
-import modules.p2ptrust.go_listener as go_listener
+import p2ptrust.utils.go_listener as go_listener
 import p2ptrust.utils.utils as utils
 
 

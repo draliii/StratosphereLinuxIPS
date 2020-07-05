@@ -135,6 +135,7 @@ modules/blessed/node_modules/
 
 # unrelated git repository with experiments, which has to be in the file structure for python reasons
 modules/p2ptrust/testing/experiments/
+modules/p2ptrust/testing/experiments/
 
 configparser
 json_data
