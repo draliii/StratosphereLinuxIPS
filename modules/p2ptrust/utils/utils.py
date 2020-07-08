@@ -1,4 +1,5 @@
 import base64
+import configparser
 import ipaddress
 import time
 import json
@@ -324,3 +325,14 @@ def send_b64_to_go(message: str, recipient: str, channel_name: str) -> None:
 
     decoded_data = base64.b64decode(message)
     print("[raw published data]", decoded_data)
+
+
+def read_configuration(config, section: str, name: str) -> str:
+    """ Read the configuration file for what we need """
+    # Get the time of log report
+    try:
+        conf_variable = config.config.get(section, name)
+    except (configparser.NoOptionError, configparser.NoSectionError, NameError):
+        # There is a conf, but there is no option, or no section or no configuration file specified
+        conf_variable = None
+    return conf_variable

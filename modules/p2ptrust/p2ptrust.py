@@ -48,6 +48,7 @@ class Trust(Module, multiprocessing.Process):
     def __init__(self,
                  output_queue: multiprocessing.Queue,
                  config: configparser.ConfigParser,
+                 data_dir: str,
                  pigeon_port=6668,
                  rename_with_port=False,
                  slips_update_channel="ip_info_change",
@@ -58,12 +59,8 @@ class Trust(Module, multiprocessing.Process):
                  pigeon_logfile="pigeon_logs",
                  rename_redis_ip_info=False,
                  rename_sql_db_file=False,
-                 override_p2p=False,
-                 data_dir="./",
-                 name_suffix=""):
+                 override_p2p=False):
         multiprocessing.Process.__init__(self)
-
-        self.printer = Printer(output_queue, self.name + name_suffix)
 
         self.output_queue = output_queue
         # In case you need to read the slips.conf configuration file for your own configurations
@@ -74,7 +71,7 @@ class Trust(Module, multiprocessing.Process):
         # - tw_modified
         # - evidence_added
 
-        self.pigeon_port = pigeon_port
+        self.port = pigeon_port
         self.rename_with_port = rename_with_port
         self.slips_update_channel_raw = slips_update_channel
         self.p2p_data_request_channel_raw = p2p_data_request_channel
@@ -85,19 +82,21 @@ class Trust(Module, multiprocessing.Process):
         self.override_p2p = override_p2p
 
         if self.rename_with_port:
-            str_port = str(self.pigeon_port)
+            str_port = str(self.port)
         else:
             str_port = ""
+
+        self.printer = Printer(output_queue, self.name + str_port)
 
         self.slips_update_channel = self.slips_update_channel_raw + str_port
         self.p2p_data_request_channel = self.p2p_data_request_channel_raw + str_port
         self.gopy_channel = self.gopy_channel_raw + str_port
         self.pygo_channel = self.pygo_channel_raw + str_port
-        self.pigeon_logfile = self.pigeon_logfile_raw + str_port
+        self.pigeon_logfile = data_dir + self.pigeon_logfile_raw + str_port
 
         self.storage_name = "IPsInfo"
         if rename_redis_ip_info:
-            self.storage_name += str(self.pigeon_port)
+            self.storage_name += str(self.port)
 
         # Set the timeout based on the platform. This is because the pyredis lib does not have officially recognized the
         # timeout=None as it works in only macos and timeout=-1 as it only works in linux
@@ -123,26 +122,32 @@ class Trust(Module, multiprocessing.Process):
         self.trust_db = trustdb.TrustDB(sql_db_name, self.printer, drop_tables_on_startup=True)
         self.reputation_model = reputation_model.TrustModel(self.printer, self.trust_db, self.config)
 
-        self.go_listener_process = go_listener.GoListener(self.printer, self.trust_db, self.config, self.storage_name, self,
-                                                          gopy_channel=self.gopy_channel, pygo_channel=self.pygo_channel)
+        self.go_listener_process = go_listener.GoListener(self.printer,
+                                                          self.trust_db,
+                                                          self.config,
+                                                          self.storage_name,
+                                                          override_p2p=self.override_p2p,
+                                                          report_func=self.process_message_report,
+                                                          request_func=self.respond_to_message_request,
+                                                          gopy_channel=self.gopy_channel,
+                                                          pygo_channel=self.pygo_channel)
         self.go_listener_process.start()
 
-        outfile = open(self.pigeon_logfile, "+w")
-        executable = ["/home/dita/ownCloud/m4.semestr/go/src/github.com/stratosphereips/p2p4slips/p2p4slips"]
-        port_param = ["-port", str(self.pigeon_port)]
-        keyfile_param = ["-key-file", "fofobarbarkeys"]
-        rename_with_port_param = ["-rename-with-port", str(self.rename_with_port).lower()]
-        pygo_channel_param = ["-redis-channel-pygo", self.pygo_channel_raw]
-        gopy_channel_param = ["-redis-channel-gopy", self.gopy_channel_raw]
-
         if self.start_pigeon:
+            outfile = open(self.pigeon_logfile, "+w")
+            executable = ["/home/dita/ownCloud/m4.semestr/go/src/github.com/stratosphereips/p2p4slips/p2p4slips"]
+            port_param = ["-port", str(self.port)]
+            keyfile_param = ["-key-file", "fofobarbarkeys"]
+            rename_with_port_param = ["-rename-with-port", str(self.rename_with_port).lower()]
+            pygo_channel_param = ["-redis-channel-pygo", self.pygo_channel_raw]
+            gopy_channel_param = ["-redis-channel-gopy", self.gopy_channel_raw]
             executable.extend(port_param)
             executable.extend(keyfile_param)
             executable.extend(rename_with_port_param)
             executable.extend(pygo_channel_param)
             executable.extend(gopy_channel_param)
 
-            self.pigeon = subprocess.Popen(executable)
+            self.pigeon = subprocess.Popen(executable, cwd=data_dir)
 
     def print(self, text: str, verbose: int = 1, debug: int = 0) -> None:
         self.printer.print(text, verbose, debug)

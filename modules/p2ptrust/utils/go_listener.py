@@ -3,6 +3,7 @@ import binascii
 import configparser
 import json
 import multiprocessing
+import time
 
 from p2ptrust.utils.utils import validate_ip_address, validate_timestamp, \
     get_ip_info_from_slips, send_evaluation_to_go, send_empty_evaluation_to_go
@@ -24,7 +25,9 @@ class GoListener(multiprocessing.Process):
                  trustdb: TrustDB,
                  config: configparser.ConfigParser,
                  storage_name: str,
-                 parent,
+                 override_p2p: bool = False,
+                 report_func = None,
+                 request_func = None,
                  gopy_channel: str = "p2p_gopy",
                  pygo_channel: str = "p2p_pygo"):
         super().__init__()
@@ -34,7 +37,9 @@ class GoListener(multiprocessing.Process):
         self.config = config
         self.pygo_channel = pygo_channel
         self.storage_name = storage_name
-        self.parent = parent
+        self.override_p2p = override_p2p
+        self.report_func = report_func
+        self.request_func = request_func
 
         self.print("Starting go listener")
 
@@ -207,9 +212,9 @@ class GoListener(multiprocessing.Process):
             self.print("Module can't process given evaluation type")
             return
 
-        if self.parent.override_p2p:
+        if self.override_p2p:
             print("Overriding p2p")
-            self.parent.respond_to_message_request(key, reporter)
+            self.request_func(key, reporter)
         else:
             print("Not overriding p2p")
             self.respond_to_message_request(key, reporter)
@@ -243,8 +248,8 @@ class GoListener(multiprocessing.Process):
         :return: None. Result is saved to the database
         """
 
-        if self.parent.override_p2p:
-            self.parent.process_message_report(reporter, report_time, data)
+        if self.override_p2p:
+            self.report_func(reporter, report_time, data)
 
         # validate keys in message
         try:
@@ -364,7 +369,7 @@ class GoListener(multiprocessing.Process):
                 timestamp = None
         except KeyError:
             self.print("Timestamp is missing")
-            self.print("Data: " + message)
+            self.print("Data: " + str(data))
             timestamp = None
 
         try:

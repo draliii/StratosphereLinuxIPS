@@ -1,4 +1,5 @@
 import configparser
+import os
 import time
 import p2ptrust.testing.json_data as json_data
 from p2ptrust.utils.utils import save_ip_report_to_db
@@ -7,6 +8,10 @@ from p2ptrust.trust.trustdb import TrustDB
 from slips.core.database import __database__
 from multiprocessing import Queue
 from outputProcess import OutputProcess
+
+base_dir = "/home/dita/ownCloud/stratosphere/SLIPS/modules/p2ptrust/testing/experiments/"
+data_dir = base_dir + "experiment_data/experiments-" + str(time.time()) + "/"
+os.mkdir(data_dir)
 
 
 def init_tests(pigeon_port=6669):
@@ -18,7 +23,7 @@ def init_tests(pigeon_port=6669):
     # Start the DB
     __database__.start(config)
     __database__.setOutputQueue(output_process_queue)
-    module_process = Trust(output_process_queue, config, rename_with_port=False, pigeon_port=pigeon_port,
+    module_process = Trust(output_process_queue, config, data_dir, rename_with_port=False, pigeon_port=pigeon_port,
                            rename_sql_db_file=False)
 
     module_process.start()
@@ -244,15 +249,17 @@ def test_pigeon():
     # peer 6669 should read the database, then notify the other peer.
     # The other peer should save the data in the reports table
 
+
 def test_trustdb():
-    trustdb = TrustDB("/home/dita/ownCloud/stratosphere/SLIPS/modules/p2ptrust/experiments/trustdb.db6660", None)
+    trustdb = TrustDB(data_dir + "trustdb.db6660", None)
     print(trustdb.get_opinion_on_ip("1.1.1.3"))
     k = 3
 
 
 if __name__ == "__main__":
     t = time.time()
-    test_trustdb()
+    # test_trustdb()
+    test_pigeon()
 
     # init_tests()
 
