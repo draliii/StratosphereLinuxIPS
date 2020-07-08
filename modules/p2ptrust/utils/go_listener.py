@@ -26,8 +26,8 @@ class GoListener(multiprocessing.Process):
                  config: configparser.ConfigParser,
                  storage_name: str,
                  override_p2p: bool = False,
-                 report_func = None,
-                 request_func = None,
+                 report_func=None,
+                 request_func=None,
                  gopy_channel: str = "p2p_gopy",
                  pygo_channel: str = "p2p_pygo"):
         super().__init__()
