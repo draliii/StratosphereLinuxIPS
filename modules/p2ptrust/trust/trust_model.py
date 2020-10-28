@@ -99,6 +99,6 @@ class TrustModel:
         weighted_reporters = self.normalize_peer_reputations(reporters)
 
         combined_score = sum([r[0]*w for r, w, in zip(reports, weighted_reporters)])
-        combined_confidence = sum([r[1]*w for r, w, in zip(reports, reporters)])/len(reporters)
+        combined_confidence = sum([max(0, r[1]*w) for r, w, in zip(reports, reporters)])/len(reporters)
 
         return combined_score, combined_confidence
