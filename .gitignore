@@ -126,5 +126,18 @@ logs/
 *.xml
 .idea/StratosphereLinuxIPS.iml
 dump.rdb
+
 package-lock.json
 modules/blessed/node_modules/
+
+# unrelated git repository with experiments, which has to be in the file structure for python reasons
+modules/p2ptrust/testing/experiments/
+
+configparser
+json_data
+modules/p2ptrust/testing/data/
+modules/p2ptrust/utils/baser.py
+modules/virustotal/data/demo/benign_out
+modules/virustotal/data/demo/malicious_out
+slips_log.conf
+time
