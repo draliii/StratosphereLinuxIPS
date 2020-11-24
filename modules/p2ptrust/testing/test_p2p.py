@@ -9,9 +9,10 @@ from slips.core.database import __database__
 from multiprocessing import Queue
 from outputProcess import OutputProcess
 
-base_dir = "/home/dita/ownCloud/stratosphere/SLIPS/modules/p2ptrust/testing/"
-data_dir = base_dir + "data/experiments-" + str(time.time()) + "/"
-os.mkdir(data_dir)
+# TODO
+# base_dir = "/home/dita/ownCloud/stratosphere/SLIPS/modules/p2ptrust/testing/"
+# data_dir = base_dir + "data/experiments-" + str(time.time()) + "/"
+# os.mkdir(data_dir)
 
 
 def init_tests(pigeon_port=6669):
